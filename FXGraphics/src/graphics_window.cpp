@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include "basic_log.h"
+#include "graphics_gpu_item.h"
 
 namespace FX {
 
@@ -49,6 +50,14 @@ namespace FX {
 
     GraphicsWindow::~GraphicsWindow()
     {
+        use();
+
+        for (auto pItem : m_itemList)
+        {
+            pItem->clearItem(this);
+        }
+        m_itemList.clear();
+
         s_windowMap.erase(m_pWindowHandle);
         glfwDestroyWindow(m_pWindowHandle);
 
@@ -78,6 +87,12 @@ namespace FX {
             m_isMultiSample ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
             s_pCurrentWindow = this;
         }
+
+        for (auto pItem : m_itemsToDelete)
+        {
+            delete pItem;
+        }
+        m_itemsToDelete.clear();
     }
 
     void GraphicsWindow::frame()
@@ -99,6 +114,24 @@ namespace FX {
     GraphicsWindow* GraphicsWindow::currentWindow()
     {
         return s_pCurrentWindow;
+    }
+
+    void GraphicsWindow::addItem(GraphicsGPUItem* pItem)
+    {
+        assert(pItem != nullptr);
+        m_itemList.insert(pItem);
+    }
+
+    void GraphicsWindow::removeItem(GraphicsGPUItem* pItem)
+    {
+        assert(pItem != nullptr);
+        m_itemList.erase(pItem);
+    }
+
+    void GraphicsWindow::addToDelete(ItemInfo* pItem)
+    {
+        assert(pItem != nullptr);
+        s_pCurrentWindow == this ? delete pItem : m_itemsToDelete.push_back(pItem);
     }
 
     GraphicsWindow* GraphicsWindow::s_pCurrentWindow = nullptr;
