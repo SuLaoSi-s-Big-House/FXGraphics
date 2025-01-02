@@ -16,7 +16,7 @@ namespace FX {
         }
     }
 
-    ItemInfo* GraphicsGPUItem::getOrCreate()
+    ItemInfo* GraphicsGPUItem::getOrCreate(bool bForceCreate)
     {
         auto pWindow = GraphicsWindow::currentWindow();
         if (pWindow == nullptr)
@@ -29,6 +29,12 @@ namespace FX {
         auto itr = m_itemList.find(pWindow);
         if (itr != m_itemList.end())
         {
+            if (bForceCreate)
+            {
+                delete itr->second;
+                itr->second = create();
+                assert(itr->second != nullptr);
+            }
             return itr->second;
         }
         else
