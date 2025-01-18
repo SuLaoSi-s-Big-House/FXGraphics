@@ -35,8 +35,7 @@ namespace FX {
     void GraphicsPrinter::_use(unsigned int program, const std::vector<unsigned int>& shaders)
     {
         assert(program < m_programs.size() && m_programs[program] != nullptr);
-        auto pWindow = GraphicsWindow::currentWindow();
-        assert(pWindow);
+        assert(GraphicsWindow::currentWindow() != nullptr);
 
         auto pProgram = static_cast<ProgramInfo*>(m_programs[program]->getOrCreate(true));
 
@@ -53,8 +52,8 @@ namespace FX {
             {
                 pShader->compile();
                 pShader->setDirty(false);
-                glAttachShader(pProgram->m_handle, pShader->m_handle);
             }
+            glAttachShader(pProgram->m_handle, pShader->m_handle);
         }
 
         pProgram->link();

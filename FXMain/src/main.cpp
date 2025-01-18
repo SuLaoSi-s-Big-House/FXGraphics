@@ -1,52 +1,83 @@
 #include "graphics_window.h"
-#include "graphics_printer.h"
+#include "graphics_entity.h"
+#include "graphics_scene.h"
+#include "basic_vector.h"
 
-constexpr char* V =
-"#version 430 core\n"
-"layout (location = 0) in vec3 position;\n"
-"void main()\n"
-"{\n"
-"gl_Position = vec4(position, 1.0);\n"
-"}\n\n";
+class Box : public FX::GraphicsEntity {
+public:
+    Box(void) : GraphicsEntity(FX::NormalFaceStripID), m_position({ 0.0f, 0.0f, 0.0f, 1.0f }) {}
+    explicit Box(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalFaceStripID),
+        m_position({ x, y, z, radius }) {}
 
-constexpr char* F =
-"#version 430 core\n"
-"out vec4 fs_color;\n"
-"void main()\n"
-"{\n"
-"fs_color = vec4(1.0, 1.0, 1.0, 1.0);\n"
-"}\n\n";
+    ~Box(void) = default;
+
+    void generate(void) override
+    {
+        m_vertex = {
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w
+        };
+
+        m_index = { 6, 4, 2, 0, 3, 1, 7, 5, FX::RestartMark, 2, 3, 6, 7, 4, 5, 0, 1 };
+    }
+
+private:
+    FX::vec4f m_position;
+};
+
+
 
 int main(void)
 {
-    FX::GraphicsNormalPrinter printer1(FX::PrintType::kTriangles);
-    printer1.addShader(FX::GPUItemType::kVtxShader, V);
-    printer1.addShader(FX::GPUItemType::kFrgShader, F);
+    Box box1;
+    Box box2(1.0f, 2.0f, 3.0f, 0.5f);
 
-    FX::GraphicsWindow window1(800, 600);
-    window1.use();
+    FX::GraphicsScene scene1;
 
-    gladLoadGL();
+    Box box3(4.0f, 4.0f, 4.0f, 0.3f);
+    Box box4(-1.0f, -2.0f, -3.0f, 1.0f);
+    Box box5(-3.0f, -3.0f, -1.0f, 0.5f);
 
-    printer1.use();
+    scene1.addEntity(&box1);
+    scene1.addEntity(&box2);
+    scene1.addEntity(&box3);
+    scene1.removeEntity(&box2);
+    scene1.addEntity(&box4);
+    scene1.addEntity(&box5);
+    scene1.addEntity(&box1);
 
-    FX::GraphicsNormalPrinter printer2(FX::PrintType::kTriangles);
-    printer2.addShader(FX::GPUItemType::kVtxShader, V);
-    printer2.addShader(FX::GPUItemType::kFrgShader, F);
+    scene1.draw();
 
-    printer2.use();
+    scene1.removeEntity(&box1);
+    scene1.removeEntity(&box2);
+    scene1.removeEntity(&box3);
+    scene1.removeEntity(&box4);
+    scene1.removeEntity(&box5);
 
-    FX::GraphicsWindow window2(800, 600);
-    window2.use();
+    scene1.draw();
 
-    printer1.use();
+    scene1.addEntity(&box2);
+    scene1.addEntity(&box3);
+    scene1.addEntity(&box4);
+    scene1.addEntity(&box5);
 
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    window2.frame();
+    scene1.draw();
 
-    window1.use();
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    window1.frame();
+    scene1.removeEntity(&box5);
+    scene1.removeEntity(&box4);
+
+    scene1.draw();
+
+    scene1.addEntity(&box4);
+    scene1.addEntity(&box5);
+    scene1.removeEntity(&box5);
+    scene1.removeEntity(&box3);
+
+    scene1.draw();
 }
