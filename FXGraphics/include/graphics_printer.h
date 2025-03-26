@@ -61,7 +61,7 @@ namespace FX {
         void _useOpaque(void) const;
         void _useTrans(void) const;
 
-    protected:
+    public:
         std::vector<std::unique_ptr<GraphicsProgram>> m_programs;
         std::vector<std::unique_ptr<GraphicsShader>> m_shaders;
         PrintType m_type = PrintType::kPoints;
