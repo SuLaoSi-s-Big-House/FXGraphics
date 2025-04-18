@@ -13,6 +13,7 @@ SET(THIRDPARTY_PATH ${FXG_ROOT_DIR}/thirdparty)
 
 SET(INCLUDE_LIST
     ${INCLUDE_PATH}/graphics_window.h
+    ${INCLUDE_PATH}/graphics_interactor.h
     ${INCLUDE_PATH}/graphics_gpu_item.h
     ${INCLUDE_PATH}/graphics_shader_program.h
     ${INCLUDE_PATH}/graphics_printer.h
@@ -24,6 +25,7 @@ SOURCE_GROUP(include FILES
 
 SET(SRC_LIST
     ${SRC_PATH}/graphics_window.cpp
+    ${SRC_PATH}/graphics_interactor.cpp
     ${SRC_PATH}/graphics_gpu_item.cpp
     ${SRC_PATH}/graphics_shader_program.cpp
     ${SRC_PATH}/graphics_printer.cpp

@@ -1,46 +1,39 @@
-#include "graphics_window.h"
-#include "graphics_printer.h"
 #include <fstream>
+#include <thread>
+#include <future>
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 #include "basic_log.h"
+#include "graphics_window.h"
+#include "graphics_printer.h"
 
-int main(void)
+void loadShader(FX::GraphicsNormalPrinter& facePrinter, FX::GraphicsNormalPrinter& linePrinter)
 {
-    FX::GraphicsNormalPrinter printer(FX::PrintType::kLines);
     std::ifstream ifs;
     ifs.open("./shader/normal.vert");
-    printer.addShader(FX::GPUItemType::kVtxShader, ifs);
+    std::stringstream buffer;
+    buffer << ifs.rdbuf();
+    ifs.close();
+    facePrinter.addShader(FX::GPUItemType::kVtxShader, buffer.str());
+    linePrinter.addShader(FX::GPUItemType::kVtxShader, buffer.str());
+    ifs.open("./shader/phong.frag");
+    facePrinter.addShader(FX::GPUItemType::kFrgShader, ifs);
     ifs.close();
     ifs.open("./shader/normal.frag");
-    printer.addShader(FX::GPUItemType::kFrgShader, ifs);
+    linePrinter.addShader(FX::GPUItemType::kFrgShader, ifs);
     ifs.close();
+    FX::BasicLog::out(FX::BasicLog::kInfo, "shader loaded.");
+}
 
-    std::vector<float> vertex;
-    std::vector<float> normal;
-    //std::vector<unsigned int> index;
-
-    //vertex = {
-    //    1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f,
-    //    -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f,
-    //};
-
-    //normal = {
-    //    1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f,
-    //    -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f,
-    //};
-
-    //index = {
-    //    0, 3, 1, 0, 2, 3, 0, 4, 2, 4, 6, 2, 1, 5, 4, 1, 4, 0, 4, 5, 7, 4, 7, 6, 1, 3, 7, 1, 7, 5, 2, 6, 7, 2, 7, 3
-    //};
-
+void loadModel(const char* path, std::vector<float>& vertex, std::vector<float>& normal, glm::vec3& maxPos, glm::vec3& minPos)
+{
     tinyobj::ObjReader reader;
     tinyobj::ObjReaderConfig reader_config;
     reader_config.mtl_search_path = "D:/";
 
-    reader.ParseFromFile("D:/helicopter.obj", reader_config);
+    reader.ParseFromFile(path, reader_config);
 
     if (!reader.Error().empty())
     {
@@ -56,6 +49,9 @@ int main(void)
     auto& shapes = reader.GetShapes();
     //auto& materials = reader.GetMaterials();
 
+    vertex.reserve(1000);
+    normal.reserve(1000);
+
     bool hasQuads = false;
     for (int i = 0; i < shapes.size(); i++)
     {
@@ -69,16 +65,34 @@ int main(void)
                     auto& idx = shapes[i].mesh.indices[offset + k];
 
                     vertex.push_back(attrib.vertices[3 * idx.vertex_index]);
-                    vertex.push_back(attrib.vertices[3 * idx.vertex_index + 1]);
                     vertex.push_back(attrib.vertices[3 * idx.vertex_index + 2]);
+                    vertex.push_back(attrib.vertices[3 * idx.vertex_index + 1]);
 
-                    if (idx.normal_index >= 0)
-                    {
-                        normal.push_back(attrib.normals[3 * idx.normal_index]);
-                        normal.push_back(attrib.normals[3 * idx.normal_index] + 1);
-                        normal.push_back(attrib.normals[3 * idx.normal_index] + 2);
-                    }
+                    maxPos.x = std::max(maxPos.x, vertex[vertex.size() - 3]);
+                    maxPos.y = std::max(maxPos.y, vertex[vertex.size() - 2]);
+                    maxPos.z = std::max(maxPos.z, vertex[vertex.size() - 1]);
+                    minPos.x = std::min(minPos.x, vertex[vertex.size() - 3]);
+                    minPos.y = std::min(minPos.y, vertex[vertex.size() - 2]);
+                    minPos.z = std::min(minPos.z, vertex[vertex.size() - 1]);
                 }
+
+                auto norm = glm::normalize(glm::cross(
+                    glm::vec3(vertex[vertex.size() - 9] - vertex[vertex.size() - 6],
+                        vertex[vertex.size() - 8] - vertex[vertex.size() - 5],
+                        vertex[vertex.size() - 7] - vertex[vertex.size() - 4]),
+                    glm::vec3(vertex[vertex.size() - 3] - vertex[vertex.size() - 6],
+                        vertex[vertex.size() - 2] - vertex[vertex.size() - 5],
+                        vertex[vertex.size() - 1] - vertex[vertex.size() - 4])));
+
+                normal.push_back(norm.x);
+                normal.push_back(norm.y);
+                normal.push_back(norm.z);
+                normal.push_back(norm.x);
+                normal.push_back(norm.y);
+                normal.push_back(norm.z);
+                normal.push_back(norm.x);
+                normal.push_back(norm.y);
+                normal.push_back(norm.z);
             }
             else
             {
@@ -94,6 +108,24 @@ int main(void)
         FX::BasicLog::out(FX::BasicLog::kError, "There are quads in model.");
     }
 
+    FX::BasicLog::out(FX::BasicLog::kInfo, "model loaded.");
+}
+
+int main(void)
+{
+    std::vector<float> vertex;
+    std::vector<float> normal;
+    glm::vec3 maxPos = glm::vec3(-1e10f);
+    glm::vec3 minPos = glm::vec3(1e10f);
+
+    auto modelBarrier = std::async(std::launch::async, loadModel, "D:/helicopter.obj", std::ref(vertex), std::ref(normal),
+        std::ref(maxPos), std::ref(minPos));
+
+    FX::GraphicsNormalPrinter printer1(FX::PrintType::kLines);
+    FX::GraphicsNormalPrinter printer2(FX::PrintType::kLines);
+
+    auto shaderBarrier = std::async(std::launch::async, loadShader, std::ref(printer1), std::ref(printer2));
+
     FX::GraphicsWindow window(800, 600, "FXGraphics", false);
     window.use();
 
@@ -103,11 +135,12 @@ int main(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     window.frame();
 
-    printer.use();
-
     unsigned int VAO, VBO1, VBO2, EBO, UBO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
+
+    modelBarrier.get();
+    FX::BasicLog::out(FX::BasicLog::kInfo, "model extent (", minPos.x, ", ", minPos.y, ", ", minPos.z, ") - (", maxPos.x, ", ", maxPos.y, ", ", maxPos.z, ")");
 
     glGenBuffers(1, &VBO1);
     glBindBuffer(GL_ARRAY_BUFFER, VBO1);
@@ -127,27 +160,61 @@ int main(void)
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     //glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(unsigned int), index.data(), GL_STATIC_DRAW);
 
-    auto handle = printer.m_programs[0]->getOrCreate()->m_handle;
-    auto ii = glGetUniformBlockIndex(handle, "globalConfig");
-    glUniformBlockBinding(handle, ii, 0);
-
     glGenBuffers(1, &UBO);
 
-    glm::mat4 project = glm::perspective(30.0f, 4 / 3.0f, 0.1f, 100.0f);
+    shaderBarrier.get();
+    printer1.use();
+    printer2.use();
+
+    auto handle = printer1.m_programs[0]->getOrCreate()->m_handle;
+    auto ii = glGetUniformBlockIndex(handle, "globalConfig");
+    glUniformBlockBinding(handle, ii, 0);
+    handle = printer2.m_programs[0]->getOrCreate()->m_handle;
+    ii = glGetUniformBlockIndex(handle, "globalConfig");
+    glUniformBlockBinding(handle, ii, 0);
+
+    struct GlobalConfig {
+        glm::mat4 mvpMatrix;
+        glm::mat4 mvMatrix;
+        glm::vec4 color;
+        glm::vec4 lightPos;
+    };
+
+    GlobalConfig config;
+
+    float fov = 45.0f;
+    glm::vec3 cameraPos = glm::vec3(400.0f, 0.0f, 0.0f);
+    glm::mat4 project = glm::mat4(1.0f);
+    glm::mat4 view = glm::mat4(1.0f);
+    float scale = 100 / std::max(std::max(std::max(maxPos.x, maxPos.y), maxPos.z), std::max(std::max(-minPos.x, -minPos.y), -minPos.z));
+    glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 
     int i = 0;
     while (!window.shouldClose())
     {
-        struct GlobalConfig {
-            glm::mat4 vpMatrix;
-            glm::vec4 color;
-        };
+        auto flag = window.interator().flag();
+        if (flag & FX::GraphicsInteractor::kMouseScroll)
+        {
+            auto value = window.interator().mouseScroll();
+            fov -= 3 * value;
+            fov = std::min(std::max(fov, 1.0f), 90.0f);
+        }
 
-        GlobalConfig config;
+        if (flag & FX::GraphicsInteractor::kMouseMove)
+        {
+            auto& pos = window.interator().mousePos();
+            cameraPos.x = std::sin(glm::radians(pos.x - 400));
+            cameraPos.y = std::cos(glm::radians(pos.x - 400));
+            cameraPos.z = (pos.y - 300) / 100;
+            cameraPos = 400.0f * glm::normalize(cameraPos);
+        }
 
-        config.vpMatrix = glm::lookAt(glm::vec3(3.0f * std::sin(0.005f * i), 3.0f * std::cos(0.005f * i), 3.0 * std::sin(0.005f * i)), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        config.vpMatrix = project * config.vpMatrix;
-        config.color = glm::vec4(0.2, 0.5, 0.8, 1.0);
+        project = glm::perspective(glm::radians(fov), 4 / 3.0f, 10.0f, 1000.0f);
+        view = glm::lookAt(cameraPos, glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        config.mvpMatrix = project * view * model;
+        config.mvMatrix = view * model;
+        config.color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+        config.lightPos = view * glm::vec4(cameraPos - 100.0f * glm::normalize(glm::cross(cameraPos, glm::vec3(0.0f, 0.0f, 1.0f))) + glm::vec3(0.0f, 0.0f, 100.0f), 1.0f);
 
         glBindBuffer(GL_UNIFORM_BUFFER, UBO);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(config), &config, GL_STATIC_DRAW);
@@ -155,7 +222,7 @@ int main(void)
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
 
         glDepthMask(GL_TRUE);
-        glClearColor(0.95f, 0.95f, 0.95f, 1.0f);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glBindVertexArray(VAO);
@@ -166,14 +233,15 @@ int main(void)
         //glCullFace(GL_BACK);
         glDisable(GL_BLEND);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glDisable(GL_POLYGON_OFFSET_LINE);
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(-1.0f, 3.0f);
+        //glDisable(GL_POLYGON_OFFSET_LINE);
+        //glEnable(GL_POLYGON_OFFSET_FILL);
+        //glPolygonOffset(-1.0f, 10.0f);
 
+        printer1.use();
         glDrawArrays(GL_TRIANGLES, 0, vertex.size());
         //glDrawElements(GL_TRIANGLES, index.size(), GL_UNSIGNED_INT, 0);
 
-        config.color = glm::vec4(1.0, 0.5, 0.0, 1.0);
+        config.color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
         glBindBuffer(GL_UNIFORM_BUFFER, UBO);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(config), &config, GL_STATIC_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -181,18 +249,19 @@ int main(void)
 
         //glEnable(GL_BLEND);
         //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        glDepthMask(GL_FALSE);
         //glEnable(GL_LINE_SMOOTH);
-        glLineWidth(5.0f);
-        glDisable(GL_POLYGON_OFFSET_FILL);
-        glEnable(GL_POLYGON_OFFSET_LINE);
-        glPolygonOffset(1.0f, 3.0f);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        glEnable(GL_CULL_FACE);
+        //glCullFace(GL_FRONT);
+        glLineWidth(2.0f);
+        //glDisable(GL_POLYGON_OFFSET_FILL);
+        //glEnable(GL_POLYGON_OFFSET_LINE);
+        //glPolygonOffset(1.0f, 10.0f);
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-        glDrawArrays(GL_TRIANGLES, 0, vertex.size());
+        printer2.use();
+        //glDrawArrays(GL_TRIANGLES, 0, vertex.size());
         //glDrawElements(GL_LINE_STRIP, index.size(), GL_UNSIGNED_INT, 0);
 
         window.frame();
@@ -202,5 +271,6 @@ int main(void)
     glDeleteBuffers(1, &VBO1);
     glDeleteBuffers(1, &VBO2);
     glDeleteBuffers(1, &EBO);
+    glDeleteBuffers(1, &UBO);
     glDeleteVertexArrays(1, &VAO);
 }

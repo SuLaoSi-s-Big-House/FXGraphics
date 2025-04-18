@@ -11,6 +11,7 @@
 
 #include "basic_vector.h"
 #include "basic_macro.h"
+#include "graphics_interactor.h"
 
 namespace FX {
 
@@ -31,6 +32,8 @@ namespace FX {
         void frame(void);
         bool shouldClose(void) const;
 
+        const GraphicsInteractor& interator(void) const;
+
         static GraphicsWindow* currentWindow(void);
 
     protected:
@@ -39,8 +42,12 @@ namespace FX {
 
         void addToDelete(ItemInfo* pItem);
 
+        static void mouseMoveCallBack(GLFWwindow* window, double xpos, double ypos);
+        static void mouseScrollCallBack(GLFWwindow* window, double xoffset, double yoffset);
+
     protected:
         GLFWwindow* m_pWindowHandle = nullptr;
+        GraphicsInteractor m_interator;
         vec2us m_windowSize = { 1280, 720 };
         vec2us m_bufferSize = { 1280, 720 };
         std::string m_title;
@@ -51,8 +58,7 @@ namespace FX {
         std::set<GraphicsGPUItem*> m_itemList;
 
         static GraphicsWindow* s_pCurrentWindow;
-        using WindowMap = std::map<const GLFWwindow*, GraphicsWindow*>;
-        static WindowMap s_windowMap;
+        static unsigned int s_windowCount;
     };
 
 } // namespace FX

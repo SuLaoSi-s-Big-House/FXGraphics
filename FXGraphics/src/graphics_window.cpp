@@ -17,6 +17,7 @@ namespace FX {
             glfwTerminate();
             return;
         }
+
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -33,8 +34,12 @@ namespace FX {
         }
 
         glfwMakeContextCurrent(m_pWindowHandle);
+        glfwSetWindowUserPointer(m_pWindowHandle, this);
         s_pCurrentWindow = this;
-        s_windowMap.insert({ m_pWindowHandle, this });
+        s_windowCount++;
+
+        glfwSetCursorPosCallback(m_pWindowHandle, &GraphicsWindow::mouseMoveCallBack);
+        glfwSetScrollCallback(m_pWindowHandle, &GraphicsWindow::mouseScrollCallBack);
 
         glfwSwapInterval(1);
 
@@ -58,14 +63,12 @@ namespace FX {
         }
         m_itemList.clear();
 
-        s_windowMap.erase(m_pWindowHandle);
         glfwDestroyWindow(m_pWindowHandle);
 
         auto pCurrent = glfwGetCurrentContext();
         if (pCurrent != nullptr)
         {
-            auto itr = s_windowMap.find(pCurrent);
-            s_pCurrentWindow = itr != s_windowMap.end() ? itr->second : nullptr;
+            s_pCurrentWindow = static_cast<GraphicsWindow*>(glfwGetWindowUserPointer(pCurrent));
         }
         else
         {
@@ -73,7 +76,8 @@ namespace FX {
             glfwMakeContextCurrent(0);
         }
 
-        if (s_windowMap.empty())
+        s_windowCount--;
+        if (s_windowCount == 0)
         {
             glfwTerminate();
         }
@@ -103,12 +107,18 @@ namespace FX {
         }
 
         glfwSwapBuffers(m_pWindowHandle);
+        m_interator.resetFlag();
         glfwPollEvents();
     }
 
     bool GraphicsWindow::shouldClose() const
     {
         return glfwWindowShouldClose(m_pWindowHandle);
+    }
+
+    const GraphicsInteractor& GraphicsWindow::interator() const
+    {
+        return m_interator;
     }
 
     GraphicsWindow* GraphicsWindow::currentWindow()
@@ -134,7 +144,23 @@ namespace FX {
         s_pCurrentWindow == this ? delete pItem : m_itemsToDelete.push_back(pItem);
     }
 
+    void GraphicsWindow::mouseMoveCallBack(GLFWwindow* window, double xpos, double ypos)
+    {
+        assert(window != nullptr);
+        auto pWindow = static_cast<GraphicsWindow*>(glfwGetWindowUserPointer(window));
+        assert(pWindow != nullptr);
+        pWindow->m_interator.setMousePos({ static_cast<float>(xpos), static_cast<float>(ypos) });
+    }
+
+    void GraphicsWindow::mouseScrollCallBack(GLFWwindow* window, double, double yoffset)
+    {
+        assert(window != nullptr);
+        auto pWindow = static_cast<GraphicsWindow*>(glfwGetWindowUserPointer(window));
+        assert(pWindow != nullptr);
+        pWindow->m_interator.setMouseScroll(static_cast<float>(yoffset));
+    }
+
     GraphicsWindow* GraphicsWindow::s_pCurrentWindow = nullptr;
-    GraphicsWindow::WindowMap GraphicsWindow::s_windowMap;
+    unsigned int GraphicsWindow::s_windowCount = 0;
 
 } // namespace FX
