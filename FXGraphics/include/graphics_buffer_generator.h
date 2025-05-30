@@ -1,0 +1,107 @@
+#ifndef _GRAPHICS_BUFFER_GENERATOR_H_
+#define _GRAPHICS_BUFFER_GENERATOR_H_
+
+#include <assert.h>
+#include "basic_vector.h"
+#include "graphics_entity.h"
+
+namespace FX {
+
+    // vertex //////////////////////////////////////////////////////////
+
+    struct NormalVertexData {
+        vec3f position;
+    };
+
+    struct NormalNormalData {
+        vec3f normal;
+    };
+
+    struct NormalUvData {
+        vec2f uv;
+    };
+
+    struct NormalIndexData {
+        vec2i index;
+    };
+
+    template<class T>
+    void exportVertex(const GraphicsEntity* pEntity, vec2i index, T* pDest)
+    {
+        static_assert(false, "Users should implement this function for custom type.");
+    }
+
+    template<>
+    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalVertexData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        memcpy(pDest, pEntity->vertex(), pEntity->pointNum() * 3 * sizeof(float));
+    }
+
+    template<>
+    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalNormalData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        memcpy(pDest, pEntity->normal(), pEntity->pointNum() * 3 * sizeof(float));
+    }
+
+    template<>
+    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalUvData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        memcpy(pDest, pEntity->uv(), pEntity->pointNum() * 2 * sizeof(float));
+    }
+
+    template<>
+    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalIndexData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        pDest->index = index;
+    }
+
+    // index //////////////////////////////////////////////////////////
+
+    template<typename T>
+    void exportIndex(const GraphicsEntity* pEntity, unsigned int offset, T* pDest)
+    {
+        static_assert(false, "Users should implement this function for custom type.");
+    }
+
+    template<>
+    void exportIndex(const GraphicsEntity* pEntity, unsigned int offset, unsigned int* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        for (unsigned int i = 0; i < pEntity->indexNum(); i++)
+        {
+            pDest[i] = pEntity->index()[i] == RestartMark ? RestartMark : pEntity->index()[i] + offset;
+        }
+    }
+
+    // profile //////////////////////////////////////////////////////////
+
+    struct NormalProfileData {
+        vec4f color;
+    };
+
+    template<class T>
+    void exportProfile(const GraphicsEntity* pEntity, T* pDest)
+    {
+        static_assert(false, "Users should implement this function for custom type.");
+    }
+
+    template<>
+    void exportProfile(const GraphicsEntity* pEntity, NormalProfileData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        pDest->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    }
+
+} // namespace FX
+
+#endif // _GRAPHICS_BUFFER_GENERATOR_H_

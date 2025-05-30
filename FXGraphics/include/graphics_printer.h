@@ -24,6 +24,8 @@ namespace FX {
     constexpr PrintPipeline NormalTransPipeline = 1;
     // For users: 用户可以添加自己的PrintPipeline，用于自己的GraphicsPrinter派生类
 
+    class GraphicsScene;
+
     // 此文件定义了GraphicsPrinter
     // GraphicsPrinter是对OpenGL program的拓展，可以存放多个GraphicsProgram与多个GraphicsShader，组成多种渲染管线。
     // GraphicsPrinter负责切换OpenGL状态与绑定GraphicsProgram，也负责更新脏的GraphicsProgram与GraphicsShader。
@@ -34,8 +36,10 @@ namespace FX {
 
     class GraphicsPrinter {
     protected:
+        friend class GraphicsScene;
+
         explicit GraphicsPrinter(PrintType type) : m_type(type) {}
-        virtual ~GraphicsPrinter(void) = default;
+        virtual ~GraphicsPrinter(void);
 
     public:
         // For users:
@@ -60,6 +64,13 @@ namespace FX {
         virtual void _dirtyPrograms(void);
         void _useOpaque(void) const;
         void _useTrans(void) const;
+
+    private:
+        void addScene(GraphicsScene* pScene);
+        void eraseScene(GraphicsScene* pScene);
+
+    private:
+        std::map<GraphicsScene*, unsigned int> m_sceneList;
 
     protected:
         std::vector<std::unique_ptr<GraphicsProgram>> m_programs;

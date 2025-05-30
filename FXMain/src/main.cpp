@@ -35,6 +35,9 @@ private:
 
 int main(void)
 {
+    FX::GraphicsWindow window(800, 600);
+    window.use();
+
     Box box1;
     Box box2(1.0f, 2.0f, 3.0f, 0.5f);
 

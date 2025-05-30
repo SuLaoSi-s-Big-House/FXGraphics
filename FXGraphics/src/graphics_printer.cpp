@@ -4,8 +4,21 @@
 #include "glad.h"
 #include "basic_log.h"
 #include "graphics_window.h"
+#include "graphics_scene.h"
 
 namespace FX {
+
+    GraphicsPrinter::~GraphicsPrinter()
+    {
+        if (!m_sceneList.empty())
+        {
+            std::map<GraphicsScene*, unsigned int> sceneList = m_sceneList;
+            for (auto&& itr : sceneList)
+            {
+                itr.first->removePrinter(this);
+            }
+        }
+    }
 
     void GraphicsPrinter::draw(unsigned int num) const
     {
@@ -116,6 +129,38 @@ namespace FX {
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    void GraphicsPrinter::addScene(GraphicsScene* pScene)
+    {
+        assert(pScene);
+
+        auto itr = m_sceneList.find(pScene);
+        if (itr == m_sceneList.end())
+        {
+            m_sceneList.insert({ pScene, 1 });
+        }
+        else
+        {
+            itr->second++;
+        }
+    }
+
+    void GraphicsPrinter::eraseScene(GraphicsScene* pScene)
+    {
+        assert(pScene);
+
+        auto itr = m_sceneList.find(pScene);
+        assert(itr != m_sceneList.end());
+
+        if (itr->second == 1)
+        {
+            m_sceneList.erase(itr);
+        }
+        else
+        {
+            itr->second--;
+        }
     }
 
     GraphicsNormalPrinter::GraphicsNormalPrinter(PrintType type) : GraphicsPrinter(type)

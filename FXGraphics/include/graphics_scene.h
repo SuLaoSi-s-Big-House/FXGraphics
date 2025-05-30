@@ -3,8 +3,11 @@
 
 #include "basic_macro.h"
 #include "graphics_entity_manager.h"
+#include "graphics_buffer.h"
 
 namespace FX {
+
+    class GraphicsPrinter;
 
     class GraphicsScene {
     public:
@@ -18,10 +21,26 @@ namespace FX {
         bool removeEntity(GraphicsEntity* pEntity);
         bool dirtyEntity(GraphicsEntity* pEntity, DirtyType type);
 
+        bool addPrinter(GraphicsPrinter* pPrinter, EntityType type);
+        bool removePrinter(GraphicsPrinter* pPrinter, EntityType type);
+        bool removePrinter(GraphicsPrinter* pPrinter);
+
         virtual void draw(void);
 
     protected:
+        void generate(void);
+        virtual void clear(void);
+        virtual void bindGlobal(void);
+        void beforeDraw(void);
+        virtual void unbind(void);
+        void afterDraw(void);
+
+    protected:
+        using PrinterManager = std::map<EntityType, GraphicsPrinter*>;
+
         GraphicsEntityManager* m_pEntityManager = nullptr;
+        PrinterManager m_printerManager;
+        GraphicsUBO m_globalUbo;
     };
 
 } // namespace FX

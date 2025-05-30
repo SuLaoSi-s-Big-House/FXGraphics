@@ -1,8 +1,19 @@
 #include "graphics_scene.h"
 
+#include <assert.h>
+#include "glm.hpp"
 #include "basic_log.h"
+#include "graphics_window.h"
+#include "graphics_printer.h"
 
 namespace FX {
+
+    namespace {
+        struct NormalGlobalInfo {
+            glm::mat4 vpMatrix = glm::mat4(1.0f);
+            vec2i viewport = { 0, 0 };
+        };
+    }  // namespace
 
     GraphicsScene::GraphicsScene()
     {
@@ -53,8 +64,105 @@ namespace FX {
         return m_pEntityManager->dirtyEntity(pEntity, type);
     }
 
+    bool GraphicsScene::addPrinter(GraphicsPrinter* pPrinter, EntityType type)
+    {
+        if (pPrinter == nullptr)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to add a null pointer as a printer, discard.");
+            return false;
+        }
+
+        auto itr = m_printerManager.find(type);
+        if (itr != m_printerManager.end())
+        {
+            if (itr->second == pPrinter)
+            {
+                return false;
+            }
+
+            itr->second->eraseScene(this);
+            pPrinter->addScene(this);
+            itr->second = pPrinter;
+        }
+        else
+        {
+            m_printerManager.insert({ type, pPrinter });
+            pPrinter->addScene(this);
+        }
+
+        return true;
+    }
+
+    bool GraphicsScene::removePrinter(GraphicsPrinter* pPrinter, EntityType type)
+    {
+        if (pPrinter == nullptr)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to remove a null pointer from printers, discard.");
+            return false;
+        }
+
+        auto itr = m_printerManager.find(type);
+        if (itr != m_printerManager.end() && itr->second == pPrinter)
+        {
+            pPrinter->eraseScene(this);
+            m_printerManager.erase(itr);
+            return true;
+        }
+
+        return false;
+    }
+
+    bool GraphicsScene::removePrinter(GraphicsPrinter* pPrinter)
+    {
+        if (pPrinter == nullptr)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to remove a null pointer from printers, discard.");
+            return false;
+        }
+
+        bool success = false;
+        for (auto itr = m_printerManager.begin(); itr != m_printerManager.end();)
+        {
+            if (itr->second == pPrinter)
+            {
+                pPrinter->eraseScene(this);
+                itr = m_printerManager.erase(itr);
+                success = true;
+            }
+            else
+            {
+                itr++;
+            }
+        }
+
+        return success;
+    }
+
     void GraphicsScene::draw()
     {
+        assert(m_pEntityManager != nullptr);
+
+        generate();
+
+        if (GraphicsWindow::currentWindow() == nullptr)
+        {
+            assert(nullptr);
+            BasicLog::out(BasicLog::kWarn, "No window is used, cannot get draw a scene.");
+            return;
+        }
+
+        beforeDraw();
+
+
+        // draw
+
+        afterDraw();
+    }
+
+    void GraphicsScene::generate()
+    {
+        // TODO: multi thread
+
         for (auto&& itr : m_pEntityManager->m_container)
         {
             auto& group = itr.second;
@@ -70,9 +178,59 @@ namespace FX {
                     list.clean();
                     list.generate();
                     list.setReady();
+
+                    // TODO: pass dirty to buffer
                 }
             }
         }
+    }
+
+    void GraphicsScene::beforeDraw()
+    {
+        clear();
+        bindGlobal();
+    }
+
+    void GraphicsScene::clear()
+    {
+        glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearDepth(1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
+    void GraphicsScene::bindGlobal()
+    {
+        NormalGlobalInfo info;
+
+        // get info
+
+        auto pUbo = static_cast<UBOInfo*>(m_globalUbo.getOrCreate());
+        pUbo->bind();
+        pUbo->setData(sizeof(info), &info);
+        pUbo->bind(0);
+    }
+
+    void GraphicsScene::afterDraw()
+    {
+        unbind();
+
+#if defined(_DEBUG) || defined(DEBUG)
+        assert(glGetError() == 0);
+#endif
+    }
+
+    void GraphicsScene::unbind()
+    {
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, 0);
     }
 
 } // namespace FX
