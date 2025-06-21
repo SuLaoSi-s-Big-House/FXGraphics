@@ -21,6 +21,10 @@ namespace FX {
         {
             m_pEntityManager = new GraphicsEntityManager(this);
         }
+        if (m_pBufferManager == nullptr)
+        {
+            m_pBufferManager = new GraphicsBufferManager(this);
+        }
     }
 
     GraphicsScene::~GraphicsScene()
@@ -28,6 +32,10 @@ namespace FX {
         if (m_pEntityManager != nullptr)
         {
             delete m_pEntityManager;
+        }
+        if (m_pBufferManager != nullptr)
+        {
+            delete m_pBufferManager;
         }
     }
 
@@ -141,6 +149,7 @@ namespace FX {
     void GraphicsScene::draw()
     {
         assert(m_pEntityManager != nullptr);
+        assert(m_pBufferManager != nullptr);
 
         generate();
 
@@ -153,23 +162,96 @@ namespace FX {
 
         beforeDraw();
 
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
 
-        // draw
+        for (auto&& pair : m_pEntityManager->m_container)
+        {
+            auto type = pair.first;
+            auto pPrinter = m_printerManager[type];
+            assert(pPrinter != nullptr);
+
+            if (pPrinter->isReady() == false)
+            {
+                BasicLog::out(BasicLog::kWarn, "Cannot draw entities of type [", type, "] due to incomplete printer.");
+                continue;
+            }
+
+            pPrinter->use(NormalOpaquePipeline);
+
+            for (int i = 0; i < pair.second.size(); i++)
+            {
+                auto& list = pair.second[i];
+
+                if (list.entityList.empty())
+                {
+                    continue;
+                }
+                assert(list.isDirty() == false);
+
+                m_pBufferManager->generate(list, type, i);
+
+                // bind
+
+                // draw
+            }
+        }
+
+        glEnable(GL_BLEND);
+        glDepthMask(GL_FALSE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        for (auto&& pair : m_pEntityManager->m_container)
+        {
+            auto type = pair.first;
+            auto pPrinter = m_printerManager[type];
+            assert(pPrinter != nullptr);
+
+            if (pPrinter->isReady() == false)
+            {
+                continue;
+            }
+
+            pPrinter->use(NormalTransPipeline);
+
+            for (int i = 0; i < pair.second.size(); i++)
+            {
+                auto& list = pair.second[i];
+
+                if (list.entityList.empty())
+                {
+                    continue;
+                }
+                assert(list.isDirty() == false);
+
+                //m_pBufferManager->generate(list, type, i);
+
+                // bind
+
+                // draw
+            }
+        }
 
         afterDraw();
     }
 
     void GraphicsScene::generate()
     {
-        // TODO: multi thread
+        assert(m_pEntityManager != nullptr);
+        assert(m_pBufferManager != nullptr);
 
-        for (auto&& itr : m_pEntityManager->m_container)
+        for (auto&& pair : m_pEntityManager->m_container)
         {
-            auto& group = itr.second;
+            auto type = pair.first;
 
-            for (unsigned int i = 0; i < group.size(); i++)
+            for (int i = 0; i < pair.second.size(); i++)
             {
-                auto& list = group[i];
+                auto& list = pair.second[i];
+
+                if (list.entityList.empty())
+                {
+                    continue;
+                }
 
                 list.arrange();
 
@@ -177,9 +259,10 @@ namespace FX {
                 {
                     list.clean();
                     list.generate();
-                    list.setReady();
 
-                    // TODO: pass dirty to buffer
+                    m_pBufferManager->accept(list, type, i);
+
+                    list.setReady();
                 }
             }
         }

@@ -1,6 +1,7 @@
 #ifndef _GRAPHICS_BUFFER_H_
 #define _GRAPHICS_BUFFER_H_
 
+#include <set>
 #include "graphics_gpu_item.h"
 
 namespace FX {
@@ -10,7 +11,8 @@ namespace FX {
         explicit GraphicsBuffer(GPUItemType type);
 
     public:
-
+        void setRebuildStart(int start);
+        void addDirtyList(const std::set<int>& dirtyList);
     };
 
 
@@ -28,16 +30,28 @@ namespace FX {
         void setData(unsigned int size, const void* pData);
         void setSubData(unsigned int start, unsigned int size, const void* pData);
 
+        int rebuildStart(void) const;
+        const std::set<int>& dirtyList(void) const;
+        void cleanDirty(void);
+        void setReady(void);
+
+    protected:
+        void setRebuildStart(int start);
+        void addDirtyList(const std::set<int>& dirtyList);
+
     protected:
         unsigned int m_bufferSize = 0;
         unsigned int m_dataSize = 0;
+        int m_rebuildStart = 0;
+        std::set<int, std::less<int>> m_dirtyList;
     };
 
 
     class GraphicsVBO : public GraphicsBuffer {
-    protected:
+    public:
         GraphicsVBO(void) : GraphicsBuffer(GPUItemType::kVBO) {}
 
+    protected:
         ItemInfo* create(void) const override;
     };
 
@@ -50,12 +64,62 @@ namespace FX {
     };
 
 
-    class GraphicsUBO : public GraphicsBuffer {
-    protected:
-        friend class GraphicsScene;
+    class GraphicsEBO : public GraphicsBuffer {
+    public:
+        GraphicsEBO(void) : GraphicsBuffer(GPUItemType::kEBO) {}
 
+    protected:
+        ItemInfo* create(void) const override;
+    };
+
+
+    class EBOInfo : public BufferInfo {
+    protected:
+        friend class GraphicsEBO;
+
+        explicit EBOInfo(const GraphicsEBO* pOwner) : BufferInfo(pOwner) {}
+    };
+
+
+    class GraphicsSSBO : public GraphicsBuffer {
+    public:
+        GraphicsSSBO(void) : GraphicsBuffer(GPUItemType::kSSBO) {}
+
+    protected:
+        ItemInfo* create(void) const override;
+    };
+
+
+    class SSBOInfo : public BufferInfo {
+    protected:
+        friend class GraphicsSSBO;
+
+        explicit SSBOInfo(const GraphicsSSBO* pOwner) : BufferInfo(pOwner) {}
+    };
+
+
+    class GraphicsDIBO : public GraphicsBuffer {
+    public:
+        GraphicsDIBO(void) : GraphicsBuffer(GPUItemType::kDIBO) {}
+
+    protected:
+        ItemInfo* create(void) const override;
+    };
+
+
+    class DIBOInfo : public BufferInfo {
+    protected:
+        friend class GraphicsDIBO;
+
+        explicit DIBOInfo(const GraphicsDIBO* pOwner) : BufferInfo(pOwner) {}
+    };
+
+
+    class GraphicsUBO : public GraphicsBuffer {
+    public:
         GraphicsUBO(void) : GraphicsBuffer(GPUItemType::kUBO) {}
 
+    protected:
         ItemInfo* create(void) const override;
     };
 
@@ -65,6 +129,28 @@ namespace FX {
         friend class GraphicsUBO;
 
         explicit UBOInfo(const GraphicsUBO* pOwner) : BufferInfo(pOwner) {}
+    };
+
+
+    class GraphicsVAO : public GraphicsGPUItem {
+    public:
+        GraphicsVAO(void) : GraphicsGPUItem(GPUItemType::kVAO) {}
+
+    protected:
+        ItemInfo* create(void) const override;
+    };
+
+
+    class VAOInfo : public ItemInfo {
+    protected:
+        friend class GraphicsVAO;
+
+        explicit VAOInfo(const GraphicsVAO* pOwner);
+        ~VAOInfo(void) override;
+
+    public:
+        void bind(void) const;
+        void unbind(void) const;
     };
 
 } // namespace FX

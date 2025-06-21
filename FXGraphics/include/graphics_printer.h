@@ -42,6 +42,8 @@ namespace FX {
         virtual ~GraphicsPrinter(void);
 
     public:
+        bool isReady(void) const;
+
         // For users:
         // 派生类需要实现use函数，通常包含切换OpenGL状态与绑定GraphicsProgram。
         // 入参pipe可以帮助判断切换到哪一种状态。
@@ -62,8 +64,6 @@ namespace FX {
 
         virtual void _updateReady(void);
         virtual void _dirtyPrograms(void);
-        void _useOpaque(void) const;
-        void _useTrans(void) const;
 
     private:
         void addScene(GraphicsScene* pScene);

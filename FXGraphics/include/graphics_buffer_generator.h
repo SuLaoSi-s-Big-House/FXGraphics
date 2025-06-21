@@ -18,12 +18,12 @@ namespace FX {
     };
 
     struct NormalUvData {
-        vec2f uv;
+        vec3f uvw;
     };
 
-    struct NormalIndexData {
-        vec2i index;
-    };
+    //struct NormalIndexData {
+    //    vec2i index;
+    //};
 
     template<class T>
     void exportVertex(const GraphicsEntity* pEntity, vec2i index, T* pDest)
@@ -32,7 +32,7 @@ namespace FX {
     }
 
     template<>
-    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalVertexData* pDest)
+    void exportVertex(const GraphicsEntity* pEntity, vec2i, NormalVertexData* pDest)
     {
         assert(pEntity);
         assert(pDest);
@@ -40,7 +40,7 @@ namespace FX {
     }
 
     template<>
-    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalNormalData* pDest)
+    void exportVertex(const GraphicsEntity* pEntity, vec2i, NormalNormalData* pDest)
     {
         assert(pEntity);
         assert(pDest);
@@ -48,20 +48,20 @@ namespace FX {
     }
 
     template<>
-    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalUvData* pDest)
+    void exportVertex(const GraphicsEntity* pEntity, vec2i, NormalUvData* pDest)
     {
         assert(pEntity);
         assert(pDest);
-        memcpy(pDest, pEntity->uv(), pEntity->pointNum() * 2 * sizeof(float));
+        memcpy(pDest, pEntity->uv(), pEntity->pointNum() * 3 * sizeof(float));
     }
 
-    template<>
-    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalIndexData* pDest)
-    {
-        assert(pEntity);
-        assert(pDest);
-        pDest->index = index;
-    }
+    //template<>
+    //void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalIndexData* pDest)
+    //{
+    //    assert(pEntity);
+    //    assert(pDest);
+    //    pDest->index = index;
+    //}
 
     // index //////////////////////////////////////////////////////////
 

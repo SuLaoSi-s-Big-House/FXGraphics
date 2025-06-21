@@ -20,6 +20,11 @@ namespace FX {
         }
     }
 
+    bool GraphicsPrinter::isReady() const
+    {
+        return m_ready;
+    }
+
     void GraphicsPrinter::draw(unsigned int num) const
     {
         glMultiDrawElementsIndirect((GLenum)m_type, GL_UNSIGNED_INT, 0, num, 0);
@@ -116,21 +121,6 @@ namespace FX {
         }
     }
 
-    void GraphicsPrinter::_useOpaque() const
-    {
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
-        glDepthMask(GL_TRUE);
-    }
-
-    void GraphicsPrinter::_useTrans() const
-    {
-        glEnable(GL_BLEND);
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask(GL_FALSE);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    }
-
     void GraphicsPrinter::addScene(GraphicsScene* pScene)
     {
         assert(pScene);
@@ -168,7 +158,7 @@ namespace FX {
         m_programs.emplace_back(new GraphicsProgram);
     }
 
-    void GraphicsNormalPrinter::use(PrintPipeline pipe)
+    void GraphicsNormalPrinter::use(PrintPipeline)
     {
         if (!m_ready)
         {
@@ -184,15 +174,6 @@ namespace FX {
             assert(pWindow);
             BasicLog::out(BasicLog::kWarn, "No window is used, cannot use a printer.");
             return;
-        }
-
-        switch (pipe)
-        {
-            case NormalOpaquePipeline: _useOpaque(); break;
-            case NormalTransPipeline: _useTrans(); break;
-            default:
-                BasicLog::out(BasicLog::kWarn, "Undesigned pipeline, may lead to incorrect rendering results.");
-                break;
         }
 
         auto pProgram = m_programs[0]->get();

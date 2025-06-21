@@ -13,6 +13,22 @@ namespace FX {
             (type == GPUItemType::kDIBO) || (type == GPUItemType::kUBO));
     }
 
+    void GraphicsBuffer::setRebuildStart(int start)
+    {
+        for (auto&& itr : m_itemList)
+        {
+            static_cast<BufferInfo*>(itr.second)->setRebuildStart(start);
+        }
+    }
+
+    void GraphicsBuffer::addDirtyList(const std::set<int>& dirtyList)
+    {
+        for (auto&& itr : m_itemList)
+        {
+            static_cast<BufferInfo*>(itr.second)->addDirtyList(dirtyList);
+        }
+    }
+
     BufferInfo::BufferInfo(const GraphicsBuffer* pOwner)
         : ItemInfo(pOwner)
     {
@@ -85,14 +101,94 @@ namespace FX {
         m_dataSize = std::max(m_dataSize, start + size);
     }
 
+    int BufferInfo::rebuildStart() const
+    {
+        return m_rebuildStart;
+    }
+
+    const std::set<int>& BufferInfo::dirtyList() const
+    {
+        return m_dirtyList;
+    }
+
+    void BufferInfo::cleanDirty()
+    {
+        if (m_rebuildStart < 0 || m_dirtyList.empty())
+        {
+            return;
+        }
+
+        auto itr = m_dirtyList.lower_bound(m_rebuildStart);
+        m_dirtyList.erase(itr, m_dirtyList.end());
+    }
+
+    void BufferInfo::setReady()
+    {
+        m_rebuildStart = -1;
+        m_dirtyList.clear();
+    }
+
+    void BufferInfo::setRebuildStart(int start)
+    {
+        if (m_rebuildStart < 0 || start < m_rebuildStart)
+        {
+            m_rebuildStart = start;
+        }
+    }
+
+    void BufferInfo::addDirtyList(const std::set<int>& dirtyList)
+    {
+        m_dirtyList.insert(dirtyList.begin(), dirtyList.end());
+    }
+
     ItemInfo* GraphicsVBO::create() const
     {
         return new VBOInfo(this);
     }
 
+    ItemInfo* GraphicsEBO::create() const
+    {
+        return new EBOInfo(this);
+    }
+
+    ItemInfo* GraphicsSSBO::create() const
+    {
+        return new SSBOInfo(this);
+    }
+
+    ItemInfo* GraphicsDIBO::create() const
+    {
+        return new DIBOInfo(this);
+    }
+
     ItemInfo* GraphicsUBO::create() const
     {
         return new UBOInfo(this);
+    }
+
+    ItemInfo* GraphicsVAO::create() const
+    {
+        return new VAOInfo(this);
+    }
+
+    VAOInfo::VAOInfo(const GraphicsVAO* pOwner) : ItemInfo(pOwner)
+    {
+        glGenVertexArrays(1, &m_handle);
+    }
+
+    VAOInfo::~VAOInfo()
+    {
+        glDeleteVertexArrays(1, &m_handle);
+    }
+
+    void VAOInfo::bind() const
+    {
+        glBindVertexArray(m_handle);
+    }
+
+    void VAOInfo::unbind() const
+    {
+        glBindVertexArray(0);
     }
 
 } // namespace FX

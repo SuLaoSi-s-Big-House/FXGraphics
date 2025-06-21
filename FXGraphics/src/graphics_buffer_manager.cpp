@@ -1,0 +1,237 @@
+#include "graphics_buffer_manager.h"
+
+#include <assert.h>
+#include "graphics_window.h"
+#include "graphics_entity_manager.h"
+#include "graphics_buffer_generator.h"
+
+namespace FX {
+
+    GraphicsBufferManager::~GraphicsBufferManager()
+    {
+        for (auto&& pair : m_container)
+        {
+            for (auto&& buffers : pair.second)
+            {
+                if (buffers.pVao != nullptr)
+                {
+                    delete buffers.pVao;
+                }
+                for (auto pVbo : buffers.pVbos)
+                {
+                    if (pVbo != nullptr)
+                    {
+                        delete pVbo;
+                    }
+                }
+                if (buffers.pEbo != nullptr)
+                {
+                    delete buffers.pEbo;
+                }
+                if (buffers.pSsbo != nullptr)
+                {
+                    delete buffers.pSsbo;
+                }
+                for (auto pDibo : buffers.pDibos)
+                {
+                    if (pDibo != nullptr)
+                    {
+                        delete pDibo;
+                    }
+                }
+            }
+        }
+    }
+
+    void GraphicsBufferManager::accept(const EntityList& list, EntityType type, int index)
+    {
+        if (list.isDirty() == false)
+        {
+            return;
+        }
+
+        auto& group = m_container[type];
+        if (group.size() < index + 1)
+        {
+            group.resize(index + 1);
+        }
+
+        auto& buffers = group[index];
+        if (buffers.init == false)
+        {
+            buffers.pVao = new GraphicsVAO;
+            buffers.pVbos.resize(3);
+            buffers.pVbos[0] = new GraphicsVBO;
+            buffers.pVbos[1] = new GraphicsVBO;
+            buffers.pVbos[2] = new GraphicsVBO;
+            buffers.pEbo = new GraphicsEBO;
+            buffers.pSsbo = new GraphicsSSBO;
+            buffers.pDibos.resize(2);
+            buffers.pDibos[0] = new GraphicsDIBO;
+            buffers.pDibos[1] = new GraphicsDIBO;
+            buffers.init = true;
+        }
+
+        for (auto&& pVbo : buffers.pVbos)
+        {
+            pVbo->setRebuildStart(list.rebuildStart);
+        }
+        buffers.pEbo->setRebuildStart(list.rebuildStart);
+        buffers.pSsbo->setRebuildStart(list.rebuildStart);
+        buffers.pSsbo->addDirtyList(list.profileList);
+        buffers.pSsbo->addDirtyList(list.matrixList);
+        for (auto& pDibo : buffers.pDibos)
+        {
+            pDibo->setRebuildStart(list.rebuildStart);
+            pDibo->addDirtyList(list.commandList);
+        }
+    }
+
+    void GraphicsBufferManager::generate(const EntityList& list, EntityType type, int index)
+    {
+        if (list.isDirty() == false)
+        {
+            return;
+        }
+
+        // check current context
+        assert(GraphicsWindow::currentWindow() != nullptr);
+        auto& group = m_container[type];
+        assert(group.size() > index);
+        auto& buffers = group[index];
+        assert(buffers.init == true);
+
+        // get all the buffer pointers
+        auto pVao = static_cast<VAOInfo*>(buffers.pVao->getOrCreate());
+        auto pEbo = static_cast<EBOInfo*>(buffers.pEbo->getOrCreate());
+        auto pSsbo = static_cast<SSBOInfo*>(buffers.pSsbo->getOrCreate());
+        assert(pVao != nullptr && pEbo != nullptr && pSsbo != nullptr);
+
+        std::vector<VBOInfo*> pVbos;
+        pVbos.resize(buffers.pVbos.size());
+        assert(buffers.pVbos.size() > 0);
+        for (int i = 0; i < pVbos.size(); i++)
+        {
+            pVbos[i] = static_cast<VBOInfo*>(buffers.pVbos[i]->getOrCreate());
+            assert(pVbos[i] != nullptr);
+        }
+        std::vector<DIBOInfo*> pDibos;
+        pDibos.resize(buffers.pDibos.size());
+        assert(buffers.pDibos.size() > 0);
+        for (int i = 0; i < pDibos.size(); i++)
+        {
+            pDibos[i] = static_cast<DIBOInfo*>(buffers.pDibos[i]->getOrCreate());
+            assert(pDibos[i] != nullptr);
+        }
+
+        // check dirty flag
+        auto rebuildStart = pVbos[0]->rebuildStart();
+#if defined(_DEBUG) || defined(DEBUG)
+        assert(pEbo->rebuildStart() == rebuildStart && pSsbo->rebuildStart() == rebuildStart);
+        for (auto pVbo : pVbos)
+        {
+            assert(pVbo->rebuildStart() == rebuildStart);
+        }
+        for (auto pDibo : pDibos)
+        {
+            assert(pDibo->rebuildStart() == rebuildStart);
+        }
+#endif
+
+        // generate rebuild dirty
+        if (rebuildStart >= 0)
+        {
+            std::vector<NormalVertexData> vertex;
+            std::vector<NormalNormalData> normal;
+            std::vector<NormalUvData> uv;
+            std::vector<unsigned int> indexs;
+            std::vector<NormalProfileData> profile;
+
+            vertex.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+            normal.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+            uv.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+            indexs.resize(list.indexSum.back() - list.indexSum[rebuildStart], RestartMark);
+            profile.resize(list.entityList.size() - rebuildStart);
+
+            for (auto i = static_cast<unsigned int>(rebuildStart); i < list.entityList.size(); i++)
+            {
+                auto pEntity = list.entityList[i];
+                if (pEntity != nullptr)
+                {
+                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &vertex[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &normal[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &uv[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                    exportIndex(pEntity, list.pointSum[i], &indexs[list.indexSum[i] - list.indexSum[rebuildStart]]);
+                    exportProfile(pEntity, &profile[i - rebuildStart]);
+                }
+            }
+
+            // if empty
+
+            pVao->bind();
+
+            pVbos[0]->bind();
+            pVbos[0]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalVertexData), 
+                static_cast<unsigned int>(vertex.size()) * sizeof(NormalVertexData), vertex.data());
+
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+            glEnableVertexAttribArray(0);
+
+            pVbos[1]->bind();
+            pVbos[1]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalNormalData),
+                static_cast<unsigned int>(normal.size()) * sizeof(NormalNormalData), normal.data());
+
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+            glEnableVertexAttribArray(1);
+
+            pVbos[2]->bind();
+            pVbos[2]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalUvData),
+                static_cast<unsigned int>(uv.size()) * sizeof(NormalUvData), uv.data());
+
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+            glEnableVertexAttribArray(2);
+
+            pVbos[2]->unbind();
+            pVao->unbind();
+
+            pEbo->bind();
+            pEbo->setSubData(list.indexSum[rebuildStart] * sizeof(unsigned int),
+                static_cast<unsigned int>(indexs.size()) * sizeof(unsigned int), indexs.data());
+            pEbo->unbind();
+
+            pSsbo->bind();
+            pSsbo->setSubData(rebuildStart * sizeof(NormalProfileData),
+                static_cast<unsigned int>(profile.size()) * sizeof(NormalProfileData), profile.data());;
+        }
+
+        for (auto i : pSsbo->dirtyList())
+        {
+            if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+            {
+                continue;
+            }
+
+            NormalProfileData profile;
+            exportProfile(list.entityList[i], &profile);
+
+            pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
+        }
+
+        pSsbo->unbind();
+
+        // command dirty
+
+        // reset dirty flag
+        pEbo->setReady();
+        pSsbo->setReady();
+        for (auto&& pVbo : pVbos)
+        {
+            pVbo->setReady();
+        }
+        for (auto&& pDibo : pDibos)
+        {
+            pDibo->setReady();
+        }
+    }
+
+} // namespace FX
