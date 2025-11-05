@@ -37,6 +37,13 @@ namespace FX {
         {
             delete m_pBufferManager;
         }
+        for (auto&& pair : m_printerManager)
+        {
+            if (pair.second != nullptr)
+            {
+                pair.second->eraseScene(this);
+            }
+        }
     }
 
     bool GraphicsScene::addEntity(GraphicsEntity* pEntity)
@@ -169,11 +176,10 @@ namespace FX {
         {
             auto type = pair.first;
             auto pPrinter = m_printerManager[type];
-            assert(pPrinter != nullptr);
 
-            if (pPrinter->isReady() == false)
+            if (pPrinter == nullptr || pPrinter->isReady() == false)
             {
-                BasicLog::out(BasicLog::kWarn, "Cannot draw entities of type [", type, "] due to incomplete printer.");
+                BasicLog::out(BasicLog::kWarn, "Cannot draw entities of type [", type, "] because printer is not ready.");
                 continue;
             }
 
@@ -189,11 +195,27 @@ namespace FX {
                 }
                 assert(list.isDirty() == false);
 
-                m_pBufferManager->generate(list, type, i);
+                auto& buffers = m_pBufferManager->generate(list, type, i);
 
-                // bind
+                auto pVao = static_cast<VAOInfo*>(buffers.pVao->getOrCreate());
+                assert(pVao != nullptr);
+                pVao->bind();
+                auto pEbo = static_cast<EBOInfo*>(buffers.pEbo->getOrCreate());
+                assert(pEbo != nullptr);
+                pEbo->bind();
 
-                // draw
+                assert(buffers.pDibos.size() == 2 && buffers.pDibos[0] != nullptr);
+                auto pDibo = static_cast<DIBOInfo*>(buffers.pDibos[0]->getOrCreate());
+                assert(pDibo != nullptr);
+
+                if (pDibo->commandNum() == 0)
+                {
+                    continue;
+                }
+
+                pDibo->bind();
+
+                pPrinter->draw(pDibo->commandNum());
             }
         }
 
@@ -205,9 +227,8 @@ namespace FX {
         {
             auto type = pair.first;
             auto pPrinter = m_printerManager[type];
-            assert(pPrinter != nullptr);
 
-            if (pPrinter->isReady() == false)
+            if (pPrinter == nullptr || pPrinter->isReady() == false)
             {
                 continue;
             }
@@ -224,11 +245,27 @@ namespace FX {
                 }
                 assert(list.isDirty() == false);
 
-                //m_pBufferManager->generate(list, type, i);
+                auto& buffers = m_pBufferManager->generate(list, type, i);
 
-                // bind
+                auto pVao = static_cast<VAOInfo*>(buffers.pVao->getOrCreate());
+                assert(pVao != nullptr);
+                pVao->bind();
+                auto pEbo = static_cast<EBOInfo*>(buffers.pEbo->getOrCreate());
+                assert(pEbo != nullptr);
+                pEbo->bind();
 
-                // draw
+                assert(buffers.pDibos.size() == 2 && buffers.pDibos[0] != nullptr);
+                auto pDibo = static_cast<DIBOInfo*>(buffers.pDibos[0]->getOrCreate());
+                assert(pDibo != nullptr);
+
+                if (pDibo->commandNum() == 0)
+                {
+                    continue;
+                }
+
+                pDibo->bind();
+
+                pPrinter->draw(pDibo->commandNum());
             }
         }
 

@@ -112,6 +112,13 @@ namespace FX {
         friend class GraphicsDIBO;
 
         explicit DIBOInfo(const GraphicsDIBO* pOwner) : BufferInfo(pOwner) {}
+
+    public:
+        void setCommandNum(unsigned int num);
+        unsigned int commandNum(void) const;
+
+    protected:
+        unsigned int m_commandNum = 0;
     };
 
 

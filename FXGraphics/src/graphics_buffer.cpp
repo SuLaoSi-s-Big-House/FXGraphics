@@ -161,6 +161,16 @@ namespace FX {
         return new DIBOInfo(this);
     }
 
+    void DIBOInfo::setCommandNum(unsigned int num)
+    {
+        m_commandNum = num;
+    }
+
+    unsigned int DIBOInfo::commandNum() const
+    {
+        return m_commandNum;
+    }
+
     ItemInfo* GraphicsUBO::create() const
     {
         return new UBOInfo(this);

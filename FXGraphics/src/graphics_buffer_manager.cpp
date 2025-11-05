@@ -87,13 +87,8 @@ namespace FX {
         }
     }
 
-    void GraphicsBufferManager::generate(const EntityList& list, EntityType type, int index)
+    const BufferSet& GraphicsBufferManager::generate(const EntityList& list, EntityType type, int index)
     {
-        if (list.isDirty() == false)
-        {
-            return;
-        }
-
         // check current context
         assert(GraphicsWindow::currentWindow() != nullptr);
         auto& group = m_container[type];
@@ -166,11 +161,12 @@ namespace FX {
                 }
             }
 
-            // if empty
+            // TODO empty
 
             pVao->bind();
 
             pVbos[0]->bind();
+            // TODO use buffer data
             pVbos[0]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalVertexData), 
                 static_cast<unsigned int>(vertex.size()) * sizeof(NormalVertexData), vertex.data());
 
@@ -201,25 +197,97 @@ namespace FX {
 
             pSsbo->bind();
             pSsbo->setSubData(rebuildStart * sizeof(NormalProfileData),
-                static_cast<unsigned int>(profile.size()) * sizeof(NormalProfileData), profile.data());;
+                static_cast<unsigned int>(profile.size()) * sizeof(NormalProfileData), profile.data());
+            pSsbo->unbind();
         }
 
-        for (auto i : pSsbo->dirtyList())
+        if (pSsbo->dirtyList().empty() == false)
         {
-            if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+            pSsbo->bind();
+
+            for (auto i : pSsbo->dirtyList())
             {
-                continue;
+                if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                {
+                    continue;
+                }
+
+                NormalProfileData profile;
+                exportProfile(list.entityList[i], &profile);
+
+                pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
             }
 
-            NormalProfileData profile;
-            exportProfile(list.entityList[i], &profile);
-
-            pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
+            pSsbo->unbind();
         }
 
-        pSsbo->unbind();
+        // generate command
+        if (rebuildStart >= 0 || pDibos[0]->dirtyList().empty() == false || pDibos[1]->dirtyList().empty() == false)
+        {
+            std::vector<DrawElementsCommand> opaqueCommand;
+            std::vector<DrawElementsCommand> transCommand;
+            opaqueCommand.reserve(10);
+            transCommand.reserve(10);
 
-        // command dirty
+            enum class CommandType : unsigned char {
+                kNone = 0,
+                kOpaque,
+                kTrans
+            };
+            CommandType lastCommand = CommandType::kNone;
+
+            for (int i = 0; i < list.entityList.size(); i++)
+            {
+                auto pEntity = list.entityList[i];
+                if (pEntity != nullptr && true) // visible
+                {
+                    auto num = list.indexSum[i + 1] - list.indexSum[i];
+                    if (true) // opaque
+                    {
+                        if (lastCommand == CommandType::kOpaque)
+                        {
+                            assert(opaqueCommand.empty() == false);
+                            assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
+                            opaqueCommand.back().indexNum += num;
+                        }
+                        else
+                        {
+                            opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                            lastCommand = CommandType::kOpaque;
+                        }
+                    }
+                    else
+                    {
+                        if (lastCommand == CommandType::kTrans)
+                        {
+                            assert(transCommand.empty() == false);
+                            assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
+                            transCommand.back().indexNum += num;
+                        }
+                        else
+                        {
+                            transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                            lastCommand = CommandType::kTrans;
+                        }
+                    }
+                }
+                else
+                {
+                    lastCommand = CommandType::kNone;
+                }
+            }
+
+            pDibos[0]->setCommandNum(static_cast<unsigned int>(opaqueCommand.size()));
+            pDibos[1]->setCommandNum(static_cast<unsigned int>(transCommand.size()));
+
+            // TODO empty
+            pDibos[0]->bind();
+            pDibos[0]->setData(static_cast<unsigned int>(opaqueCommand.size()) * sizeof(DrawElementsCommand), opaqueCommand.data());
+
+            pDibos[1]->bind();
+            pDibos[1]->setData(static_cast<unsigned int>(transCommand.size()) * sizeof(DrawElementsCommand), transCommand.data());
+            pDibos[1]->unbind();
+        }
 
         // reset dirty flag
         pEbo->setReady();
@@ -232,6 +300,8 @@ namespace FX {
         {
             pDibo->setReady();
         }
+
+        return buffers;
     }
 
 } // namespace FX

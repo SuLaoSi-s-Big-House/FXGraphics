@@ -102,6 +102,16 @@ namespace FX {
         pDest->color = { 1.0f, 1.0f, 1.0f, 1.0f };
     }
 
+    // command //////////////////////////////////////////////////////////
+
+    struct DrawElementsCommand {
+        unsigned int indexNum = 0;
+        unsigned int instanceNum = 1;
+        unsigned int indexStart = 0;
+        int vertexOffset = 0;
+        unsigned int instanceOffset = 0;
+    };
+
 } // namespace FX
 
 #endif // _GRAPHICS_BUFFER_GENERATOR_H_

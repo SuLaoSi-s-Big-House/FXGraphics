@@ -12,6 +12,15 @@ namespace FX {
     class GraphicsScene;
     struct EntityList;
 
+    struct BufferSet {
+        GraphicsVAO* pVao = nullptr;
+        std::vector<GraphicsVBO*> pVbos;
+        GraphicsEBO* pEbo = nullptr;
+        GraphicsSSBO* pSsbo = nullptr;
+        std::vector<GraphicsDIBO*> pDibos;
+        bool init = false;
+    };
+
     class GraphicsBufferManager {
     protected:
         friend class GraphicsScene;
@@ -21,22 +30,11 @@ namespace FX {
 
         void accept(const EntityList& list, EntityType type, int index);
 
-        void generate(const EntityList& list, EntityType type, int index);
+        const BufferSet& generate(const EntityList& list, EntityType type, int index);
 
         DELETE_COPY_AND_MOVE_CONSTRUCT(GraphicsBufferManager);
 
-    public:
-
     protected:
-        struct BufferSet {
-            GraphicsVAO* pVao = nullptr;
-            std::vector<GraphicsVBO*> pVbos;
-            GraphicsEBO* pEbo = nullptr;
-            GraphicsSSBO* pSsbo = nullptr;
-            std::vector<GraphicsDIBO*> pDibos;
-            bool init = false;
-        };
-         
         using BufferGroup = std::vector<BufferSet>;
         using BufferContainer = std::map<EntityType, BufferGroup>;
 

@@ -2,6 +2,7 @@
 #include "graphics_entity.h"
 #include "graphics_scene.h"
 #include "basic_vector.h"
+#include "graphics_printer.h"
 
 class Box : public FX::GraphicsEntity {
 public:
@@ -23,6 +24,8 @@ public:
             m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
             m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w
         };
+        m_normal = m_vertex;
+        m_uv = m_vertex;
 
         m_index = { 6, 4, 2, 0, 3, 1, 7, 5, FX::RestartMark, 2, 3, 6, 7, 4, 5, 0, 1 };
     }
@@ -37,11 +40,23 @@ int main(void)
 {
     FX::GraphicsWindow window(800, 600);
     window.use();
+    window.frame();
 
     Box box1;
     Box box2(1.0f, 2.0f, 3.0f, 0.5f);
 
+    FX::GraphicsNormalPrinter printer(FX::PrintType::kTriangleStrip);
+    std::ifstream ifs;
+    ifs.open("./shader/normal.vert");
+    printer.addShader(FX::GPUItemType::kVtxShader, ifs);
+    ifs.close();
+    ifs.open("./shader/normal.frag");
+    printer.addShader(FX::GPUItemType::kFrgShader, ifs);
+    ifs.close();
+
     FX::GraphicsScene scene1;
+
+    scene1.addPrinter(&printer, FX::NormalFaceStripID);
 
     Box box3(4.0f, 4.0f, 4.0f, 0.3f);
     Box box4(-1.0f, -2.0f, -3.0f, 1.0f);
@@ -56,6 +71,7 @@ int main(void)
     scene1.addEntity(&box1);
 
     scene1.draw();
+    window.frame();
 
     scene1.removeEntity(&box1);
     scene1.removeEntity(&box2);
@@ -64,6 +80,7 @@ int main(void)
     scene1.removeEntity(&box5);
 
     scene1.draw();
+    window.frame();
 
     scene1.addEntity(&box2);
     scene1.addEntity(&box3);
@@ -71,11 +88,13 @@ int main(void)
     scene1.addEntity(&box5);
 
     scene1.draw();
+    window.frame();
 
     scene1.removeEntity(&box5);
     scene1.removeEntity(&box4);
 
     scene1.draw();
+    window.frame();
 
     scene1.addEntity(&box4);
     scene1.addEntity(&box5);
@@ -83,4 +102,5 @@ int main(void)
     scene1.removeEntity(&box3);
 
     scene1.draw();
+    window.frame();
 }
