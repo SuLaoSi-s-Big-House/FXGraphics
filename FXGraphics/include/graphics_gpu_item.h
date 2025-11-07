@@ -40,14 +40,16 @@ namespace FX {
 
         DELETE_COPY_AND_MOVE_CONSTRUCT(GraphicsGPUItem);
 
-        // 派生类需要实现这一函数，需要创建对应的ItemInfo派生类对象并返回。
+        // 派生类需要实现create函数，需要创建对应的ItemInfo派生类对象并返回。
         // 必须通过new创建对象，用户不需要维护其生命周期。
         virtual ItemInfo* create(void) const = 0;
 
         void clearItem(GraphicsWindow* pWindow);
 
     public:
-        ItemInfo* getOrCreate(void);    // 如果当前没有正在使用的GraphicsWindow，此函数会返回空指针。
+        // 如果当前没有正在使用的GraphicsWindow，此函数会返回空指针。
+        // 如果bForceCreate为true，则始终会创建新的ItemInfo，如果当前GraphicsWindow下已经存在ItemInfo，则会删除旧的ItemInfo。
+        ItemInfo* getOrCreate(bool bForceCreate = false);    
 
         GPUItemType type(void) const;
 
@@ -66,6 +68,8 @@ namespace FX {
         friend class GraphicsWindow;
 
         explicit ItemInfo(const GraphicsGPUItem* pOwner);
+
+    public:
         virtual ~ItemInfo(void) = default;
 
         DELETE_COPY_AND_MOVE_CONSTRUCT(ItemInfo);
