@@ -12,31 +12,26 @@ OpenGL 4.3+  (2012年发布)
 
 ### 构建项目
 
-首先，你需要拉取代码到本地
+推荐使用Git拉取代码，推荐使用CMake (3.12+) 构建项目
 
-如果你安装了Git或其他版本管理工具，可以通过克隆的方式获取代码，如
+如果你满足上述条件，则可以通过克隆的方式获取代码，在Git bash中运行如下指令：
 
     git clone https://github.com/SuLaoSi-s-Big-House/FXGraphics.git
 
-否则，你需要通过下载压缩包等方式将代码下载到本地
+完成后，在Git bash中调用仓库中的cmake.sh工具（或双击运行），使用cmake构建项目：
 
-之后，你需要构建项目
-
-如果你安装了CMake (3.12+)与Git，可以双击运行FXGraphics/cmake.sh，或是在FXGraphics文件夹中执行指令：
-
+    cd ./FXGraphics
     ./cmake.sh
 
-会自动创建FXGraphics/build文件夹并使用CMake生成解决方案。
-
-否则，请自行创建工作空间。仓库提供了较为完善的CMake文件，推荐使用CMake构建项目
+如果你不满足上述条件，也推荐使用其他方法拉取代码和构建项目
 
 ### 运行
 
-FXGraphics默认编译成dll库
+推荐使用Visual Studio (MSVC) 编译和运行项目
 
-为方便运行，我在仓库中添加了FXMain项目，它会被编译成为exe文件，并链接了其他仓库，你可以直接在FXMain中修改代码并运行
+仓库中的FXMain项目会被编译为exe文件，其余仓库会被编译为dll库，因此将FXMain设置为启动项便可以直接运行，同样你可以直接在FXMain中修改代码用于简单的测试
 
-或者你可以将FXGraphics作为子文件夹加入到你的项目中，或是直接使用编译得到的dll库，如果是这样你可以删除FXMain
+FXMain项目并不重要，如果你是将FXGraphics作为子文件夹加入到你的项目中，或只需要使用编译生成的dll库，则可以删除FXMain项目
 
 所有编译结果会输出到FXGraphics/bin文件夹中
 
@@ -46,7 +41,7 @@ FXGraphics默认编译成dll库
 
 在release模式下我设置了隐藏控制台，可以在顶级的CMake文件中找到并修改
 
-### 引用
+### 使用的库
 
 - [glfw3](https://www.glfw.org/)
 - [glad](https://github.com/Dav1dde/glad)
