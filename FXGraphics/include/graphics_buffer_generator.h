@@ -21,9 +21,9 @@ namespace FX {
         vec3f uvw;
     };
 
-    //struct NormalIndexData {
-    //    vec2i index;
-    //};
+    struct NormalRankData {
+        vec2i rank;
+    };
 
     template<class T>
     void exportVertex(const GraphicsEntity* pEntity, vec2i index, T* pDest)
@@ -55,13 +55,16 @@ namespace FX {
         memcpy(pDest, pEntity->uv(), pEntity->pointNum() * 3 * sizeof(float));
     }
 
-    //template<>
-    //void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalIndexData* pDest)
-    //{
-    //    assert(pEntity);
-    //    assert(pDest);
-    //    pDest->index = index;
-    //}
+    template<>
+    void exportVertex(const GraphicsEntity* pEntity, vec2i index, NormalRankData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        for (unsigned int i = 0; i < pEntity->pointNum(); i++)
+        {
+            pDest[i].rank = index;
+        }
+    }
 
     // index //////////////////////////////////////////////////////////
 
@@ -85,6 +88,7 @@ namespace FX {
     // profile //////////////////////////////////////////////////////////
 
     struct NormalProfileData {
+        glm::mat4 matrix;
         vec4f color;
     };
 
@@ -99,7 +103,14 @@ namespace FX {
     {
         assert(pEntity);
         assert(pDest);
-        pDest->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        auto& profile = pEntity->profile();
+        pDest->matrix = profile.matrix;
+        pDest->color = {
+            profile.color.r / 255.0f,
+            profile.color.g / 255.0f,
+            profile.color.b / 255.0f,
+            profile.color.a / 255.0f,
+        };
     }
 
     // command //////////////////////////////////////////////////////////

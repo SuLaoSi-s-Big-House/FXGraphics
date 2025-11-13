@@ -4,6 +4,8 @@
 #include <vector>
 #include <map>
 
+#include "glm.hpp"
+#include "basic_vector.h"
 #include "basic_macro.h"
 
 namespace FX {
@@ -28,6 +30,12 @@ namespace FX {
     // 请注意DirtyType的常量值需要满足位运算的要求，同时需要在GraphicsEntityManager中响应自定义的DirtyType。
 
     constexpr unsigned int RestartMark = std::numeric_limits<unsigned int>::max();    // OpenGL图元重启标志
+
+    struct EntityProfile {
+        glm::mat4 matrix = glm::mat4(1.0f);
+        vec4uc color = { 255, 255, 255, 255 };
+        bool visible = true;
+    };
 
     struct GroupPos {
         int first = -1;
@@ -64,6 +72,9 @@ namespace FX {
 
         EntityType type(void) const;
 
+        void setProfile(const EntityProfile& profile);
+        const EntityProfile& profile(void) const;
+
         void setDirty(DirtyType type);
 
     protected:
@@ -80,6 +91,7 @@ namespace FX {
         std::vector<float> m_normal;
         std::vector<float> m_uv;
         std::vector<unsigned int> m_index;
+        EntityProfile m_profile;
         const EntityType m_type = 0;
 
     private:

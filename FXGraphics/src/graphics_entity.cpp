@@ -52,6 +52,40 @@ namespace FX {
         return m_type;
     }
 
+    void GraphicsEntity::setProfile(const EntityProfile& profile)
+    {
+        DirtyType dirtyType = 0;
+
+        if (m_profile.matrix != profile.matrix)
+        {
+            dirtyType |= MatrixDirty;
+        }
+        if (m_profile.color != profile.color)
+        {
+            dirtyType |= ColorDirty;
+        }
+        if (m_profile.color.a != profile.color.a)
+        {
+            dirtyType |= TransparencyDirty;
+        }
+        if (m_profile.visible != profile.visible)
+        {
+            dirtyType |= VisibleDirty;
+        }
+
+        m_profile = profile;
+
+        for (auto&& pair : m_managerList)
+        {
+            pair.first->dirtyEntity(this, dirtyType);
+        }
+    }
+
+    const EntityProfile& GraphicsEntity::profile() const
+    {
+        return m_profile;
+    }
+
     void GraphicsEntity::setDirty(DirtyType type)
     {
         if (type & DataDirty)

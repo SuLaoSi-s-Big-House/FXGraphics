@@ -6,6 +6,10 @@
 
 namespace FX {
 
+    using BufferSlot = unsigned char;
+    constexpr BufferSlot NormalGlobalInfoSlot = 0;
+    constexpr BufferSlot NormalProfileSlot = 1;
+
     class GraphicsBuffer : public GraphicsGPUItem {
     protected:
         explicit GraphicsBuffer(GPUItemType type);

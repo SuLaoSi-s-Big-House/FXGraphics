@@ -204,6 +204,10 @@ namespace FX {
                 assert(pEbo != nullptr);
                 pEbo->bind();
 
+                auto pSsbo = static_cast<SSBOInfo*>(buffers.pSsbo->getOrCreate());
+                assert(pSsbo != nullptr);
+                pSsbo->bind(NormalProfileSlot);
+
                 assert(buffers.pDibos.size() == 2 && buffers.pDibos[0] != nullptr);
                 auto pDibo = static_cast<DIBOInfo*>(buffers.pDibos[0]->getOrCreate());
                 assert(pDibo != nullptr);
@@ -254,8 +258,12 @@ namespace FX {
                 assert(pEbo != nullptr);
                 pEbo->bind();
 
-                assert(buffers.pDibos.size() == 2 && buffers.pDibos[0] != nullptr);
-                auto pDibo = static_cast<DIBOInfo*>(buffers.pDibos[0]->getOrCreate());
+                auto pSsbo = static_cast<SSBOInfo*>(buffers.pSsbo->getOrCreate());
+                assert(pSsbo != nullptr);
+                pSsbo->bind(NormalProfileSlot);
+
+                assert(buffers.pDibos.size() == 2 && buffers.pDibos[1] != nullptr);
+                auto pDibo = static_cast<DIBOInfo*>(buffers.pDibos[1]->getOrCreate());
                 assert(pDibo != nullptr);
 
                 if (pDibo->commandNum() == 0)
@@ -329,7 +337,7 @@ namespace FX {
         auto pUbo = static_cast<UBOInfo*>(m_globalUbo.getOrCreate());
         pUbo->bind();
         pUbo->setData(sizeof(info), &info);
-        pUbo->bind(0);
+        pUbo->bind(NormalGlobalInfoSlot);
     }
 
     void GraphicsScene::afterDraw()

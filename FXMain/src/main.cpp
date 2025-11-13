@@ -7,8 +7,7 @@
 class Box : public FX::GraphicsEntity {
 public:
     Box(void) : GraphicsEntity(FX::NormalFaceStripID), m_position({ 0.0f, 0.0f, 0.0f, 1.0f }) {}
-    explicit Box(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalFaceStripID),
-        m_position({ x, y, z, radius }) {}
+    Box(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalFaceStripID), m_position({ x, y, z, radius }) {}
 
     ~Box(void) = default;
 
@@ -42,8 +41,11 @@ int main(void)
     window.use();
     window.frame();
 
-    Box box1;
-    Box box2(1.0f, 2.0f, 3.0f, 0.5f);
+    Box box1(-4.0f, 0.0f, 0.0f, 0.5f);
+    Box box2(-2.0f, 0.0f, 0.0f, 0.5f);
+    Box box3(0.0f, 0.0f, 0.0f, 0.5f);
+    Box box4(2.0f, 0.0f, 0.0f, 0.5f);
+    Box box5(4.0f, 0.0f, 0.0f, 0.5f);
 
     FX::GraphicsNormalPrinter printer(FX::PrintType::kTriangleStrip);
     std::ifstream ifs;
@@ -54,53 +56,64 @@ int main(void)
     printer.addShader(FX::GPUItemType::kFrgShader, ifs);
     ifs.close();
 
-    FX::GraphicsScene scene1;
+    FX::GraphicsScene scene;
 
-    scene1.addPrinter(&printer, FX::NormalFaceStripID);
+    scene.addPrinter(&printer, FX::NormalFaceStripID);
 
-    Box box3(4.0f, 4.0f, 4.0f, 0.3f);
-    Box box4(-1.0f, -2.0f, -3.0f, 1.0f);
-    Box box5(-3.0f, -3.0f, -1.0f, 0.5f);
+    scene.addEntity(&box1);
+    scene.addEntity(&box2);
+    scene.addEntity(&box3);
+    scene.removeEntity(&box2);
+    scene.addEntity(&box4);
+    scene.addEntity(&box5);
+    scene.addEntity(&box1);
 
-    scene1.addEntity(&box1);
-    scene1.addEntity(&box2);
-    scene1.addEntity(&box3);
-    scene1.removeEntity(&box2);
-    scene1.addEntity(&box4);
-    scene1.addEntity(&box5);
-    scene1.addEntity(&box1);
-
-    scene1.draw();
+    scene.draw();
     window.frame();
 
-    scene1.removeEntity(&box1);
-    scene1.removeEntity(&box2);
-    scene1.removeEntity(&box3);
-    scene1.removeEntity(&box4);
-    scene1.removeEntity(&box5);
+    scene.removeEntity(&box1);
+    scene.removeEntity(&box2);
+    scene.removeEntity(&box3);
+    scene.removeEntity(&box4);
+    scene.removeEntity(&box5);
 
-    scene1.draw();
+    scene.draw();
     window.frame();
 
-    scene1.addEntity(&box2);
-    scene1.addEntity(&box3);
-    scene1.addEntity(&box4);
-    scene1.addEntity(&box5);
+    scene.addEntity(&box2);
+    scene.addEntity(&box3);
+    scene.addEntity(&box4);
+    scene.addEntity(&box5);
 
-    scene1.draw();
+    scene.draw();
     window.frame();
 
-    scene1.removeEntity(&box5);
-    scene1.removeEntity(&box4);
+    scene.removeEntity(&box5);
+    scene.removeEntity(&box4);
 
-    scene1.draw();
+    scene.draw();
     window.frame();
 
-    scene1.addEntity(&box4);
-    scene1.addEntity(&box5);
-    scene1.removeEntity(&box5);
-    scene1.removeEntity(&box3);
+    FX::EntityProfile profile;
+    profile.color = { 255, 0, 0, 255 };
 
-    scene1.draw();
+    scene.addEntity(&box1);
+    scene.addEntity(&box2);
+    scene.addEntity(&box3);
+    scene.addEntity(&box4);
+    scene.addEntity(&box5);
+
+    box1.setProfile(profile);
+    box2.setProfile(profile);
+
+    scene.draw();
+    window.frame();
+
+    profile.color = { 0, 255, 0, 100 };
+
+    box3.setProfile(profile);
+    box4.setProfile(profile);
+
+    scene.draw();
     window.frame();
 }

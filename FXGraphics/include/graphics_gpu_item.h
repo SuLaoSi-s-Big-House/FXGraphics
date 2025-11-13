@@ -19,8 +19,6 @@ namespace FX {
         kGeoShader = 0x8DD9
     };
 
-    using BufferSlot = unsigned char;
-
     class GraphicsWindow;
     class ItemInfo;
 

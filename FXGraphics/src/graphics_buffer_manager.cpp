@@ -60,10 +60,11 @@ namespace FX {
         if (buffers.init == false)
         {
             buffers.pVao = new GraphicsVAO;
-            buffers.pVbos.resize(3);
+            buffers.pVbos.resize(4);
             buffers.pVbos[0] = new GraphicsVBO;
             buffers.pVbos[1] = new GraphicsVBO;
             buffers.pVbos[2] = new GraphicsVBO;
+            buffers.pVbos[3] = new GraphicsVBO;
             buffers.pEbo = new GraphicsEBO;
             buffers.pSsbo = new GraphicsSSBO;
             buffers.pDibos.resize(2);
@@ -139,12 +140,14 @@ namespace FX {
             std::vector<NormalVertexData> vertex;
             std::vector<NormalNormalData> normal;
             std::vector<NormalUvData> uv;
+            std::vector<NormalRankData> rank;
             std::vector<unsigned int> indexs;
             std::vector<NormalProfileData> profile;
 
             vertex.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
             normal.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
             uv.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+            rank.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
             indexs.resize(list.indexSum.back() - list.indexSum[rebuildStart], RestartMark);
             profile.resize(list.entityList.size() - rebuildStart);
 
@@ -156,6 +159,7 @@ namespace FX {
                     exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &vertex[list.pointSum[i] - list.pointSum[rebuildStart]]);
                     exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &normal[list.pointSum[i] - list.pointSum[rebuildStart]]);
                     exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &uv[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &rank[list.pointSum[i] - list.pointSum[rebuildStart]]);
                     exportIndex(pEntity, list.pointSum[i], &indexs[list.indexSum[i] - list.indexSum[rebuildStart]]);
                     exportProfile(pEntity, &profile[i - rebuildStart]);
                 }
@@ -187,7 +191,14 @@ namespace FX {
             glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
             glEnableVertexAttribArray(2);
 
-            pVbos[2]->unbind();
+            pVbos[3]->bind();
+            pVbos[3]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalRankData),
+                static_cast<unsigned int>(rank.size()) * sizeof(NormalRankData), rank.data());
+
+            glVertexAttribIPointer(3, 2, GL_INT, 2 * sizeof(int), 0);
+            glEnableVertexAttribArray(3);
+
+            pVbos[3]->unbind();
             pVao->unbind();
 
             pEbo->bind();
@@ -239,10 +250,10 @@ namespace FX {
             for (int i = 0; i < list.entityList.size(); i++)
             {
                 auto pEntity = list.entityList[i];
-                if (pEntity != nullptr && true) // visible
+                if (pEntity != nullptr && pEntity->profile().visible == true)
                 {
                     auto num = list.indexSum[i + 1] - list.indexSum[i];
-                    if (true) // opaque
+                    if (pEntity->profile().color.a == 255)
                     {
                         if (lastCommand == CommandType::kOpaque)
                         {
