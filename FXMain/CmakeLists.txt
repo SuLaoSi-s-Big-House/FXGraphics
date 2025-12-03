@@ -36,16 +36,18 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PRIVATE
     ${THIRDPARTY_PATH}/glad/include
     ${THIRDPARTY_PATH}/glfw/include/GLFW
     ${THIRDPARTY_PATH}/glm
-    ${THIRDPARTY_PATH}/stb
+    ${THIRDPARTY_PATH}/stb/include
     ${FXG_ROOT_DIR}/FXMath/include
     ${FXG_ROOT_DIR}/FXBasic/include
     ${FXG_ROOT_DIR}/FXGraphics/include
+    ${FXG_ROOT_DIR}/FXApplication/surface/include
 )
 
 TARGET_LINK_DIRECTORIES(${PROJECT_NAME} PRIVATE
     ${FXG_ROOT_DIR}/FXMath/include
     ${FXG_ROOT_DIR}/FXBasic/include
     ${FXG_ROOT_DIR}/FXGraphics/include
+    ${FXG_ROOT_DIR}/FXApplication/surface/include
 )
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}
@@ -53,6 +55,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
     glfw
     FXBasic
     FXGraphics
+    Surface
 )
 
 SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)

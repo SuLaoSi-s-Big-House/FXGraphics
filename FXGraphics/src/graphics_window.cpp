@@ -46,6 +46,7 @@ namespace FX {
 
         m_isMultiSample ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
         glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     }
 
     GraphicsWindow::~GraphicsWindow()

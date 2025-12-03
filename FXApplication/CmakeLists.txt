@@ -1,0 +1,11 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.12.0 FATAL_ERROR)
+
+IF(NOT DEFINED FXG_ROOT_DIR)
+    MESSAGE(FATAL_ERROR "The project should be built from the top-level directory.")
+ENDIF()
+
+SET(PROJECT_NAME FXApplication)
+PROJECT(${PROJECT_NAME})
+
+ADD_SUBDIRECTORY(surface)
+

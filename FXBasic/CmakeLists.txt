@@ -9,12 +9,14 @@ PROJECT(${PROJECT_NAME} CXX C)
 
 SET(INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
 SET(SRC_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
+SET(THIRDPARTY_PATH ${FXG_ROOT_DIR}/thirdparty)
 
 SET(INCLUDE_LIST
     ${INCLUDE_PATH}/basic_macro.h
     ${INCLUDE_PATH}/basic_platform.h
     ${INCLUDE_PATH}/basic_vector.h
     ${INCLUDE_PATH}/basic_log.h
+    ${INCLUDE_PATH}/basic_image.h
 )
 
 SOURCE_GROUP(include FILES
@@ -23,6 +25,7 @@ SOURCE_GROUP(include FILES
 
 SET(SRC_LIST
     ${SRC_PATH}/basic_log.cpp
+    ${SRC_PATH}/basic_image.cpp
 )
 
 SOURCE_GROUP(src FILES
@@ -36,6 +39,7 @@ ADD_LIBRARY(${PROJECT_NAME}
 
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PRIVATE
     ${INCLUDE_PATH}
+    ${THIRDPARTY_PATH}/stb/include
     ${FXG_ROOT_DIR}/FXMath/include
 )
 

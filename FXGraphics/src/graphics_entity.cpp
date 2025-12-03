@@ -72,13 +72,15 @@ namespace FX {
         {
             dirtyType |= VisibleDirty;
         }
+        if ((m_profile.font == profile.font) == false)
+        {
+            dirtyType |= DataDirty;
+            dirtyType |= FontDirty;
+        }
 
         m_profile = profile;
 
-        for (auto&& pair : m_managerList)
-        {
-            pair.first->dirtyEntity(this, dirtyType);
-        }
+        setDirty(dirtyType);
     }
 
     const EntityProfile& GraphicsEntity::profile() const

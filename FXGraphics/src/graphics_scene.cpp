@@ -5,6 +5,7 @@
 #include "basic_log.h"
 #include "graphics_window.h"
 #include "graphics_printer.h"
+#include "graphics_font_manager.h"
 
 namespace FX {
 
@@ -195,6 +196,28 @@ namespace FX {
                 }
                 assert(list.isDirty() == false);
 
+                if (type == NormalTextID)
+                {
+                    GraphicsEntity* ptr = nullptr;
+                    for (auto p : list.entityList)
+                    {
+                        if (p != nullptr)
+                        {
+                            ptr = p;
+                        }
+                    }
+
+                    assert(ptr);
+                    if (ptr != nullptr)
+                    {
+                        auto a = GraphicsFontManager::instance().getTexture(ptr->profile().font);
+                        auto b = static_cast<TextureInfo*>(a->getOrCreate());
+                        b->bind(TextTextureUnit);
+                    }
+
+                    glUniform1i(glGetUniformLocation(1, "diffuseMap"), 4);
+                }
+
                 auto& buffers = m_pBufferManager->generate(list, type, i);
 
                 auto pVao = static_cast<VAOInfo*>(buffers.pVao->getOrCreate());
@@ -248,6 +271,28 @@ namespace FX {
                     continue;
                 }
                 assert(list.isDirty() == false);
+
+                if (type == NormalTextID)
+                {
+                    GraphicsEntity* ptr = nullptr;
+                    for (auto p : list.entityList)
+                    {
+                        if (p != nullptr)
+                        {
+                            ptr = p;
+                        }
+                    }
+
+                    assert(ptr);
+                    if (ptr != nullptr)
+                    {
+                        auto a = GraphicsFontManager::instance().getTexture(ptr->profile().font);
+                        auto b = static_cast<TextureInfo*>(a->getOrCreate());
+                        b->bind(TextTextureUnit);
+                    }
+
+                    glUniform1i(glGetUniformLocation(1, "diffuseMap"), 4);
+                }
 
                 auto& buffers = m_pBufferManager->generate(list, type, i);
 

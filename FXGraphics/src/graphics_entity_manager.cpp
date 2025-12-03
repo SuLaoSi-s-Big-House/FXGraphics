@@ -6,6 +6,7 @@ namespace FX {
 
     namespace {
         constexpr unsigned int MAX_LIST_ENTITY_NUM = 1000u;
+        constexpr unsigned int MAX_LIST_TEXT_ENTITY_NUM = 100000u;
         constexpr unsigned int MAX_LIST_BYTE_SIZE = 10000000u;
     }  // namespace
 
@@ -178,11 +179,37 @@ namespace FX {
         auto& group = m_container[pEntity->type()];
 
         int i = 0;
-        for (; i < group.size(); i++)
+
+        if (pEntity->type() == NormalTextID)
         {
-            if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+            for (; i < group.size(); i++)
             {
-                break;
+                if (group[i].entityList.size() < MAX_LIST_TEXT_ENTITY_NUM)
+                {
+                    GraphicsEntity* ptr = nullptr;
+                    for (auto p : group[i].entityList)
+                    {
+                        if (p != nullptr)
+                        {
+                            ptr = p;
+                        }
+                    }
+
+                    if (ptr != nullptr && ptr->profile().font == pEntity->profile().font)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (; i < group.size(); i++)
+            {
+                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+                {
+                    break;
+                }
             }
         }
 
@@ -240,8 +267,16 @@ namespace FX {
         auto& list = m_container[pEntity->type()][pos.first];
         assert(list.entityList[pos.second] == pEntity);
 
-        if (list.rebuildStart >= 0 && list.rebuildStart <= pos.second)
+        if (type & FontDirty && pEntity->type() == NormalTextID)
         {
+            list.entityList[pos.second] = nullptr;
+            list.invalidNum++;
+            list.commandList.insert(pos.second);
+            list.matrixList.erase(pos.second);
+            list.profileList.erase(pos.second);
+            pEntity->eraseGroup(this);
+
+            addEntity(pEntity);
             return true;
         }
 

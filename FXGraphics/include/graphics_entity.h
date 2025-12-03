@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <string>
 
 #include "glm.hpp"
 #include "basic_vector.h"
@@ -16,6 +17,8 @@ namespace FX {
     constexpr EntityType NormalFaceID = 1;
     constexpr EntityType NormalLineStripID = 2;
     constexpr EntityType NormalFaceStripID = 3;
+    constexpr EntityType NormalPointID = 4;
+    constexpr EntityType NormalTextID = 5;
     // For users: 用户可以添加自己的EntityType，并创建自己的GraphicsEntity派生类
 
     using DirtyType = unsigned int;
@@ -25,15 +28,27 @@ namespace FX {
     constexpr DirtyType TransparencyDirty = 1 << 2;
     constexpr DirtyType MatrixDirty = 1 << 3;
     constexpr DirtyType VisibleDirty = 1 << 4;
+    constexpr DirtyType FontDirty = 1 << 5;
     // For users:
     // 用户可以添加自己的DirtyType，用于表示GraphicsEntity的变更情况。
     // 请注意DirtyType的常量值需要满足位运算的要求，同时需要在GraphicsEntityManager中响应自定义的DirtyType。
 
     constexpr unsigned int RestartMark = std::numeric_limits<unsigned int>::max();    // OpenGL图元重启标志
 
+    struct Font {
+        std::string name = "Arial";
+        unsigned char size = 16;
+
+        bool operator==(const Font& other) const
+        {
+            return this->name == other.name && this->size == other.size;
+        }
+    };
+
     struct EntityProfile {
         glm::mat4 matrix = glm::mat4(1.0f);
         vec4uc color = { 255, 255, 255, 255 };
+        Font font;
         bool visible = true;
     };
 
