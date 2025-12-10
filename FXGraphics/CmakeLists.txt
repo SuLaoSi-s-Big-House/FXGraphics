@@ -16,6 +16,9 @@ SET(INCLUDE_LIST
     ${INCLUDE_PATH}/graphics_gpu_item.h
     ${INCLUDE_PATH}/graphics_shader_program.h
     ${INCLUDE_PATH}/graphics_printer.h
+    ${INCLUDE_PATH}/graphics_entity.h
+    ${INCLUDE_PATH}/graphics_scene.h
+    ${INCLUDE_PATH}/graphics_entity_manager.h
 )
 
 SOURCE_GROUP(include FILES
@@ -27,6 +30,9 @@ SET(SRC_LIST
     ${SRC_PATH}/graphics_gpu_item.cpp
     ${SRC_PATH}/graphics_shader_program.cpp
     ${SRC_PATH}/graphics_printer.cpp
+    ${SRC_PATH}/graphics_entity.cpp
+    ${SRC_PATH}/graphics_scene.cpp
+    ${SRC_PATH}/graphics_entity_manager.cpp
 )
 
 SOURCE_GROUP(src FILES

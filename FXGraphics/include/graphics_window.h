@@ -2,10 +2,10 @@
 #define _GRAPHICS_WINDOW_H_
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <chrono>
 #include <vector>
-#include <set>
+#include <unordered_set>
 #include "glad.h"
 #include "glfw3.h"
 
@@ -48,10 +48,10 @@ namespace FX {
         bool m_isMultiSample = true;
 
         std::vector<ItemInfo*> m_itemsToDelete;
-        std::set<GraphicsGPUItem*> m_itemList;
+        std::unordered_set<GraphicsGPUItem*> m_itemList;
 
         static GraphicsWindow* s_pCurrentWindow;
-        using WindowMap = std::map<const GLFWwindow*, GraphicsWindow*>;
+        using WindowMap = std::unordered_map<const GLFWwindow*, GraphicsWindow*>;
         static WindowMap s_windowMap;
     };
 

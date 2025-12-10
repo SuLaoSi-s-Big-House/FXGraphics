@@ -8,21 +8,12 @@
 
 namespace FX {
 
-    // GraphicsPrinter类型，对应OpenGL的图元类型
-    enum class PrintType : unsigned int {
-        kPoints = 0x0000,
-        kLines = 0x0001,
-        kLineStrip = 0x0003,
-        kLineStripAdj = 0x000B,
-        kTriangles = 0x0004,
-        kTriangleStrip = 0x0005,
-        kTriangleStripAdj = 0x000D,
-    };
-
     using PrintPipeline = unsigned int;
     constexpr PrintPipeline NormalOpaquePipeline = 0;
     constexpr PrintPipeline NormalTransPipeline = 1;
     // For users: 用户可以添加自己的PrintPipeline，用于自己的GraphicsPrinter派生类
+
+    class GraphicsScene;
 
     // 此文件定义了GraphicsPrinter
     // GraphicsPrinter是对OpenGL program的拓展，可以存放多个GraphicsProgram与多个GraphicsShader，组成多种渲染管线。
@@ -34,8 +25,10 @@ namespace FX {
 
     class GraphicsPrinter {
     protected:
-        explicit GraphicsPrinter(PrintType type) : m_type(type) {}
-        virtual ~GraphicsPrinter(void) = default;
+        friend class GraphicsScene;
+
+        GraphicsPrinter(void) = default;
+        virtual ~GraphicsPrinter(void);
 
     public:
         bool isReady(void) const;
@@ -46,7 +39,7 @@ namespace FX {
         // 此函数会在渲染过程中由GraphicsScene调用，用户通常不需要主动调用。
         virtual void use(PrintPipeline pipe = NormalOpaquePipeline) = 0;
 
-        virtual void draw(unsigned int num) const;
+        virtual void draw(unsigned int mode, unsigned int num) const;
 
         virtual void addProgram(void);
         virtual void addShader(GPUItemType type, const std::ifstream& file);
@@ -61,10 +54,16 @@ namespace FX {
         virtual void _updateReady(void);
         virtual void _dirtyPrograms(void);
 
+    private:
+        void addScene(GraphicsScene* pScene);
+        void eraseScene(GraphicsScene* pScene);
+
+    private:
+        std::unordered_map<GraphicsScene*, unsigned int> m_sceneList;
+
     protected:
         std::vector<std::unique_ptr<GraphicsProgram>> m_programs;
         std::vector<std::unique_ptr<GraphicsShader>> m_shaders;
-        PrintType m_type = PrintType::kPoints;
         bool m_ready = false;
     };
 
@@ -72,7 +71,7 @@ namespace FX {
     // 基础的GraphicsPrinter，包含一个GraphicsProgram和若干GraphicsShader，无法继续添加GraphicsProgram。
     class GraphicsNormalPrinter : public GraphicsPrinter {
     public:
-        explicit GraphicsNormalPrinter(PrintType type);
+        GraphicsNormalPrinter(void);
 
         void use(PrintPipeline pipe = NormalOpaquePipeline) override;
 
