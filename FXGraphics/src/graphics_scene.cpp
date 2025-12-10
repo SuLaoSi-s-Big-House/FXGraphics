@@ -11,6 +11,10 @@ namespace FX {
         {
             m_pEntityManager = new GraphicsEntityManager(this);
         }
+        if (m_pBufferManager == nullptr)
+        {
+            m_pBufferManager = new GraphicsBufferManager(this);
+        }
     }
 
     GraphicsScene::~GraphicsScene()
@@ -18,6 +22,10 @@ namespace FX {
         if (m_pEntityManager != nullptr)
         {
             delete m_pEntityManager;
+        }
+        if (m_pBufferManager != nullptr)
+        {
+            delete m_pBufferManager;
         }
         for (auto&& pair : m_printerManager)
         {
