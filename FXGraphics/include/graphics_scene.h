@@ -2,7 +2,9 @@
 #define _GRAPHICS_SCENE_H_
 
 #include "basic_macro.h"
+#include "graphics_buffer.h"
 #include "graphics_entity_manager.h"
+#include "graphics_buffer_manager.h"
 
 namespace FX {
 
@@ -33,6 +35,7 @@ namespace FX {
         using PrinterManager = std::unordered_map<EntityType, GraphicsPrinter*>;
 
         GraphicsEntityManager* m_pEntityManager = nullptr;
+        GraphicsBufferManager* m_pBufferManager = nullptr;
         PrinterManager m_printerManager;
     };
 
