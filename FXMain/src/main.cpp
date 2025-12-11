@@ -2,6 +2,7 @@
 #include "graphics_entity.h"
 #include "graphics_scene.h"
 #include "graphics_printer.h"
+#include "basic_vector.h"
 
 class Box : public FX::GraphicsEntity {
 public:
@@ -23,6 +24,8 @@ public:
             m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
             m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w
         };
+        m_normal = m_vertex;
+        m_uv = m_vertex;
 
         m_index = { 6, 4, 2, 0, 3, 1, 7, 5, FX::RestartMark, 2, 3, 6, 7, 4, 5, 0, 1 };
     }

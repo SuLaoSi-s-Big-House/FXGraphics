@@ -32,11 +32,20 @@ namespace FX {
         virtual void draw(void);
 
     protected:
+        void generate(void);
+        virtual void clear(void);
+        virtual void bindGlobal(void);
+        void beforeDraw(void);
+        virtual void unbind(void);
+        void afterDraw(void);
+
+    protected:
         using PrinterManager = std::unordered_map<EntityType, GraphicsPrinter*>;
 
         GraphicsEntityManager* m_pEntityManager = nullptr;
         GraphicsBufferManager* m_pBufferManager = nullptr;
         PrinterManager m_printerManager;
+        GraphicsUBO m_globalUbo;
     };
 
 } // namespace FX

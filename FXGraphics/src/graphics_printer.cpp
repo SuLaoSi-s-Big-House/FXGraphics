@@ -25,9 +25,9 @@ namespace FX {
         return m_ready;
     }
 
-    void GraphicsPrinter::draw(unsigned int mode, unsigned int num) const
+    void GraphicsPrinter::draw(PrimitiveMode mode, unsigned int num) const
     {
-        glMultiDrawElementsIndirect(mode, GL_UNSIGNED_INT, 0, num, 0);
+        glMultiDrawElementsIndirect((GLenum)mode, GL_UNSIGNED_INT, 0, num, 0);
     }
 
     void GraphicsPrinter::addProgram()
