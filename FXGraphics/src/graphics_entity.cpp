@@ -72,6 +72,11 @@ namespace FX {
         {
             dirtyType |= VisibleDirty;
         }
+        if ((m_profile.font == profile.font) == false)
+        {
+            dirtyType |= DataDirty;
+            dirtyType |= FontDirty;
+        }
 
         m_profile = profile;
 
@@ -95,7 +100,8 @@ namespace FX {
             m_dataDirty = true;
         }
 
-        for (auto&& pair : m_managerList)
+        std::unordered_map<GraphicsEntityManager*, GroupPos> managerList = m_managerList;
+        for (auto&& pair : managerList)
         {
             pair.first->dirtyEntity(this, type);
         }
@@ -122,7 +128,8 @@ namespace FX {
         {NormalFaceID, PrimitiveMode::kTriangles},
         {NormalLineStripID, PrimitiveMode::kLineStrip},
         {NormalFaceStripID, PrimitiveMode::kTriangleStrip},
-        {NormalPointID, PrimitiveMode::kPoints}
+        {NormalPointID, PrimitiveMode::kPoints},
+        {ScreenTextID, PrimitiveMode::kTriangles},
     };
 
     bool GraphicsEntity::isDataDirty() const

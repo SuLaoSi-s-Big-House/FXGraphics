@@ -108,7 +108,7 @@ namespace FX {
 
     vec2us GraphicsWindow::size() const
     {
-        return m_bufferSize;
+        return m_windowSize;
     }
 
     bool GraphicsWindow::shouldClose() const

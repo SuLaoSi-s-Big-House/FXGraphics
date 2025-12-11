@@ -6,6 +6,7 @@ namespace FX {
 
     namespace {
         constexpr unsigned int MAX_LIST_ENTITY_NUM = 1000u;
+        constexpr unsigned int MAX_LIST_TEXT_ENTITY_NUM = 100000u;
     }  // namespace
 
     void EntityList::setRebuildStart(int start)
@@ -177,11 +178,26 @@ namespace FX {
         auto& group = m_container[pEntity->type()];
 
         int i = 0;
-        for (; i < group.size(); i++)
+
+        if (pEntity->type() == ScreenTextID)
         {
-            if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+            for (; i < group.size(); i++)
             {
-                break;
+                assert(group[i].pFont != nullptr);
+                if (*group[i].pFont == pEntity->profile().font && group[i].entityList.size() < MAX_LIST_TEXT_ENTITY_NUM)
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (; i < group.size(); i++)
+            {
+                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+                {
+                    break;
+                }
             }
         }
 
@@ -190,6 +206,10 @@ namespace FX {
             EntityList newList;
             newList.pOwner = this;
             newList.index = i;
+            if (pEntity->type() == ScreenTextID)
+            {
+                newList.pFont.reset(new Font(pEntity->profile().font));
+            }
             group.emplace_back(std::move(newList));
         }
 
@@ -243,6 +263,19 @@ namespace FX {
 
         auto& list = m_container[pEntity->type()][pos.first];
         assert(list.entityList[pos.second] == pEntity);
+
+        if (type & FontDirty && pEntity->type() == ScreenTextID)
+        {
+            list.entityList[pos.second] = nullptr;
+            list.invalidNum++;
+            list.commandList.insert(pos.second);
+            list.matrixList.erase(pos.second);
+            list.profileList.erase(pos.second);
+            pEntity->eraseGroup(this);
+
+            addEntity(pEntity);
+            return true;
+        }
 
         if (list.rebuildStart >= 0 && list.rebuildStart <= pos.second)
         {

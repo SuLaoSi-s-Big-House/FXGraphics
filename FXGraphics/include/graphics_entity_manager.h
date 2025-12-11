@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <unordered_map>
+#include <memory>
 
 #include "basic_macro.h"
 #include "graphics_entity.h"
@@ -38,6 +39,8 @@ namespace FX {
 
         GraphicsEntityManager* pOwner = nullptr;
         int index = 0;
+
+        std::unique_ptr<Font> pFont = nullptr;
     };
 
     // 此文件定义了GraphicsEntityManager

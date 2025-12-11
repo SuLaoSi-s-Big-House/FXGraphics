@@ -5,6 +5,7 @@
 #include "basic_log.h"
 #include "graphics_window.h"
 #include "graphics_printer.h"
+#include "graphics_font_manager.h"
 
 namespace FX {
 
@@ -212,6 +213,11 @@ namespace FX {
                 }
                 assert(list.isDirty() == false);
 
+                if (list.pFont != nullptr)
+                {
+                    continue;    // 纹理文字只画透明
+                }
+
                 auto& buffers = m_pBufferManager->generate(list, type, i);
 
                 assert(buffers.pDibos.size() == 2 && buffers.pDibos[0] != nullptr);
@@ -272,6 +278,15 @@ namespace FX {
                     continue;
                 }
                 assert(list.isDirty() == false);
+
+                if (list.pFont != nullptr)
+                {
+                    auto font = GraphicsFontManager::instance().queryFont(*list.pFont);
+                    assert(font.pTexture != nullptr);
+                    auto pTexture = static_cast<TextureInfo*>(const_cast<GraphicsTexture*>(font.pTexture)->getOrCreate());
+                    assert(pTexture != nullptr);
+                    pTexture->bind(TextTextureUnit);
+                }
 
                 auto& buffers = m_pBufferManager->generate(list, type, i);
 
