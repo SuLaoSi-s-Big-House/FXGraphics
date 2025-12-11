@@ -104,8 +104,14 @@ namespace FX {
     {
         assert(pEntity);
         assert(pDest);
-        pDest->matrix = glm::mat4(1.0f);
-        pDest->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        auto profile = pEntity->profile();
+        pDest->matrix = profile.matrix;
+        pDest->color = {
+            profile.color.r / 255.0f,
+            profile.color.g / 255.0f,
+            profile.color.b / 255.0f,
+            profile.color.a / 255.0f,
+        };
     }
 
     // command //////////////////////////////////////////////////////////

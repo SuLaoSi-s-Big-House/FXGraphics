@@ -3,12 +3,13 @@
 #include "graphics_scene.h"
 #include "graphics_printer.h"
 #include "basic_vector.h"
+#include "glm.hpp"
+#include "ext/matrix_transform.inl"
 
 class Box : public FX::GraphicsEntity {
 public:
     Box(void) : GraphicsEntity(FX::NormalFaceStripID), m_position({ 0.0f, 0.0f, 0.0f, 1.0f }) {}
-    explicit Box(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalFaceStripID),
-        m_position({ x, y, z, radius }) {}
+    Box(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalFaceStripID), m_position({ x, y, z, radius }) {}
 
     ~Box(void) = default;
 
@@ -42,8 +43,11 @@ int main(void)
     window.use();
     window.frame();
 
-    Box box1;
-    Box box2(1.0f, 2.0f, 3.0f, 0.5f);
+    Box box1(-4.0f, 0.0f, 0.0f, 0.5f);
+    Box box2(-2.0f, 0.0f, 0.0f, 0.5f);
+    Box box3(0.0f, 0.0f, 0.0f, 0.5f);
+    Box box4(2.0f, 0.0f, 0.0f, 0.5f);
+    Box box5(4.0f, 0.0f, 0.0f, 0.5f);
 
     FX::GraphicsNormalPrinter printer;
     std::ifstream ifs;
@@ -58,12 +62,30 @@ int main(void)
 
     scene1.addPrinter(&printer, FX::NormalFaceStripID);
 
-    Box box3(4.0f, 4.0f, 4.0f, 0.3f);
-    Box box4(-1.0f, -2.0f, -3.0f, 1.0f);
-    Box box5(-3.0f, -3.0f, -1.0f, 0.5f);
+    scene1.addEntity(&box1);
+    scene1.addEntity(&box2);
+    scene1.addEntity(&box3);
+    scene1.removeEntity(&box2);
+    scene1.addEntity(&box4);
+    scene1.addEntity(&box5);
+    scene1.addEntity(&box1);
+
+    FX::EntityProfile profile;
+    profile.color = { 255, 0, 0, 255 };
+    box1.setProfile(profile);
+
+    int i = 0;
 
     while (!window.shouldClose())
     {
+        profile = box1.profile();
+        profile.color.g = profile.color.b = i % 255;
+        box1.setProfile(profile);
+
+        profile = box2.profile();
+        profile.matrix = glm::rotate(glm::mat4(1.0f), 3.1415926f * i / 180, glm::vec3(1.0f, 1.0f, 1.0f));
+        box5.setProfile(profile);
+
         scene1.addEntity(&box1);
         scene1.addEntity(&box2);
         scene1.addEntity(&box3);
@@ -105,5 +127,7 @@ int main(void)
 
         scene1.draw();
         window.frame();
+
+        i++;
     }
 }

@@ -4,7 +4,9 @@
 #include <vector>
 #include <unordered_map>
 #include <limits>
+#include "glm.hpp"
 
+#include "basic_vector.h"
 #include "basic_macro.h"
 
 namespace FX {
@@ -42,6 +44,12 @@ namespace FX {
         kTriangles = 0x0004,
         kTriangleStrip = 0x0005,
         kTriangleStripAdj = 0x000D,
+    };
+    
+    struct EntityProfile {
+        glm::mat4 matrix = glm::mat4(1.0f);
+        vec4uc color = { 255, 255, 255, 255 };
+        bool visible = true;
     };
 
     struct GroupPos {
@@ -90,6 +98,9 @@ namespace FX {
         // 预留接口，用户可以重写用来对接上层业务。默认返回空指针。图形系统不会主动调用。
         virtual void* owner(void) const;
 
+        void setProfile(const EntityProfile& profile);
+        virtual EntityProfile profile(void) const;
+
         EntityType type(void) const;
 
         void setDirty(DirtyType type);
@@ -111,6 +122,7 @@ namespace FX {
         std::vector<float> m_normal;
         std::vector<float> m_uv;
         std::vector<unsigned int> m_index;
+        EntityProfile m_profile;
         const EntityType m_type = 0;
 
         static std::unordered_map<EntityType, PrimitiveMode> s_entityTypeMap;
