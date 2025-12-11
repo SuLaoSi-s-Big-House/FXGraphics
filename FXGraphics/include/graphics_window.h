@@ -29,6 +29,9 @@ namespace FX {
     public:
         void use(void);
         void frame(void);
+
+        vec2us size(void) const;
+
         bool shouldClose(void) const;
 
         static GraphicsWindow* currentWindow(void);

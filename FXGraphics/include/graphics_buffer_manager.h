@@ -21,6 +21,10 @@ namespace FX {
         std::vector<std::unique_ptr<GraphicsDIBO>> pDibos;
     };
 
+    constexpr unsigned int NormalOpaqueCommand = 0;
+    constexpr unsigned int NormalTransCommand = 1;
+    constexpr unsigned int NormalCommandNum = 2;
+
     // 此文件定义了GraphicsBufferManager
     // GraphicsBufferManager由GraphicsScene创建，帮助GraphicsScene管理绘制过程中创建的buffer。
 
@@ -31,11 +35,11 @@ namespace FX {
         friend class GraphicsScene;
 
         explicit GraphicsBufferManager(GraphicsScene* pScene) : m_pScene(pScene) {}
-        virtual ~GraphicsBufferManager(void);
+        virtual ~GraphicsBufferManager(void) = default;
 
-        void accept(const EntityList& list, EntityType type, int index);
+        virtual void accept(const EntityList& list, EntityType type, int index);
 
-        const BufferSet& generate(const EntityList& list, EntityType type, int index);
+        virtual const BufferSet& generate(const EntityList& list, EntityType type, int index);
 
         DELETE_COPY_AND_MOVE_CONSTRUCT(GraphicsBufferManager);
 
