@@ -10,6 +10,11 @@ namespace FX {
     constexpr BufferSlot NormalGlobalInfoSlot = 0;
     constexpr BufferSlot NormalProfileSlot = 1;
 
+    // 此文件定义了GraphicsBuffer与GraphicsVAO，对OpenGL buffer与OpenGL vao进行了封装。
+
+    // For users:
+    // 如果用户需要实现特定的数据生成，应当从GraphicsBufferManager派生并实现相应的函数，而不应当直接修改这个文件中的类。
+
     class GraphicsBuffer : public GraphicsGPUItem {
     protected:
         explicit GraphicsBuffer(GPUItemType type);
@@ -31,6 +36,7 @@ namespace FX {
         void bind(void) const;
         void bind(BufferSlot slot) const;
         void unbind(void) const;
+        // 注意setData、setSubData与OpenGL函数含义不同，总是会申请足够的空间并存放数据
         void setData(unsigned int size, const void* pData);
         void setSubData(unsigned int start, unsigned int size, const void* pData);
 

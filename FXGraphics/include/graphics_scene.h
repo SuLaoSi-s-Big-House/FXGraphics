@@ -12,6 +12,9 @@ namespace FX {
 
     // 此文件定义了GraphicsScene
     // GraphicsScene管理GraphicsEntity GraphicsPrinter等与绘制相关的资源，并实现绘制的主要流程。
+    // 将GraphicsEntity加入GraphicsScene以绘制，一个GraphicsScene可以加入多种类型的GraphicsEntity，但不支持同一个GraphicsEntity重复加入。
+
+    // For users: 用户可以从GraphicsScene派生，以自定义绘制流程。
     
     class GraphicsScene {
     public:
@@ -32,11 +35,20 @@ namespace FX {
         virtual void draw(void);
 
     protected:
+        void generate(void);
+        virtual void clear(void);
+        virtual void bindGlobal(void);
+        void beforeDraw(void);
+        virtual void unbind(void);
+        void afterDraw(void);
+
+    protected:
         using PrinterManager = std::unordered_map<EntityType, GraphicsPrinter*>;
 
         GraphicsEntityManager* m_pEntityManager = nullptr;
         GraphicsBufferManager* m_pBufferManager = nullptr;
         PrinterManager m_printerManager;
+        GraphicsUBO m_globalUbo;
     };
 
 } // namespace FX

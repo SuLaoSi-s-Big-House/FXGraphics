@@ -81,6 +81,11 @@ namespace FX {
         return true;
     }
 
+    const std::unordered_map<EntityType, PrimitiveMode>& GraphicsEntity::entityTypeMap()
+    {
+        return s_entityTypeMap;
+    }
+
     std::unordered_map<EntityType, PrimitiveMode> GraphicsEntity::s_entityTypeMap = {
         {NormalLineID, PrimitiveMode::kLines},
         {NormalFaceID, PrimitiveMode::kTriangles},

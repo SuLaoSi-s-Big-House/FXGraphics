@@ -75,6 +75,7 @@ namespace FX {
             glBufferSubData((GLenum)m_type, start, size, pData);
             m_bufferSize = std::max(100u, (start + size) * 3 / 2);
             m_dataSize = start + size;
+            return;
         }
 
         if (start + size > m_bufferSize)

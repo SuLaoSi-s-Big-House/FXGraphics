@@ -99,6 +99,15 @@ namespace FX {
         static_assert(false, "Users should implement this function for custom type.");
     }
 
+    template<>
+    void exportProfile(const GraphicsEntity*, NormalProfileData* pDest)
+    {
+        //assert(pEntity);
+        assert(pDest);
+        pDest->matrix = glm::mat4(1.0f);
+        pDest->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    }
+
     // command //////////////////////////////////////////////////////////
 
     struct DrawElementsCommand {

@@ -1,7 +1,9 @@
-﻿#include "graphics_window.h"
+﻿#include <random>
+#include "graphics_window.h"
 #include "graphics_entity.h"
 #include "graphics_scene.h"
 #include "graphics_printer.h"
+#include "basic_vector.h"
 
 class Box : public FX::GraphicsEntity {
 public:
@@ -23,6 +25,8 @@ public:
             m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
             m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w
         };
+        m_normal = m_vertex;
+        m_uv = m_vertex;
 
         m_index = { 6, 4, 2, 0, 3, 1, 7, 5, FX::RestartMark, 2, 3, 6, 7, 4, 5, 0, 1 };
     }
@@ -32,15 +36,25 @@ private:
 };
 
 
+std::random_device rDevice;
+std::mt19937 rEngine(rDevice());
+std::uniform_int_distribution<> range(0, 7);
 
 int main(void)
 {
-    FX::GraphicsWindow window(800, 600);
-    window.use();
-    window.frame();
+    FX::GraphicsWindow window1(800, 600);
+    window1.use();
+    window1.frame();
 
-    Box box1;
-    Box box2(1.0f, 2.0f, 3.0f, 0.5f);
+    FX::GraphicsWindow window2(800, 600);
+    window2.use();
+    window2.frame();
+
+    Box* boxs[8] = {};
+    for (int i = 0; i < 8; i++)
+    {
+        boxs[i] = new Box(5 * std::sin(2 * 3.1415926f * i / 8), 5 * std::cos(2 * 3.1415926f * i / 8), 0.0f, 1.0f);
+    }
 
     FX::GraphicsNormalPrinter printer;
     std::ifstream ifs;
@@ -51,56 +65,40 @@ int main(void)
     printer.addShader(FX::GPUItemType::kFrgShader, ifs);
     ifs.close();
 
-    FX::GraphicsScene scene1;
-
-    scene1.addPrinter(&printer, FX::NormalFaceStripID);
-
-    Box box3(4.0f, 4.0f, 4.0f, 0.3f);
-    Box box4(-1.0f, -2.0f, -3.0f, 1.0f);
-    Box box5(-3.0f, -3.0f, -1.0f, 0.5f);
-
-    while (!window.shouldClose())
+    FX::GraphicsScene scene;
+    scene.addPrinter(&printer, FX::NormalFaceStripID);
+    for (int i = 0; i < 8; i++)
     {
-        scene1.addEntity(&box1);
-        scene1.addEntity(&box2);
-        scene1.addEntity(&box3);
-        scene1.removeEntity(&box2);
-        scene1.addEntity(&box4);
-        scene1.addEntity(&box5);
-        scene1.addEntity(&box1);
+        scene.addEntity(boxs[i]);
+    }
 
-        scene1.draw();
-        window.frame();
+    int i = 0;
+    int n = 0;
+    while (!window1.shouldClose() && !window2.shouldClose())
+    {
+        if (n % 10 == 0)
+        {
+            scene.addEntity(boxs[i]);
+            i = range(rEngine);
+            scene.removeEntity(boxs[i]);
+        }
 
-        scene1.removeEntity(&box1);
-        scene1.removeEntity(&box2);
-        scene1.removeEntity(&box3);
-        scene1.removeEntity(&box4);
-        scene1.removeEntity(&box5);
+        window1.use();
+        scene.draw();
+        window1.frame();
 
-        scene1.draw();
-        window.frame();
+        if (n % 60 == 0)
+        {
+            window2.use();
+            scene.draw();
+            window2.frame();
+        }
 
-        scene1.addEntity(&box2);
-        scene1.addEntity(&box3);
-        scene1.addEntity(&box4);
-        scene1.addEntity(&box5);
+        n++;
+    }
 
-        scene1.draw();
-        window.frame();
-
-        scene1.removeEntity(&box5);
-        scene1.removeEntity(&box4);
-
-        scene1.draw();
-        window.frame();
-
-        scene1.addEntity(&box4);
-        scene1.addEntity(&box5);
-        scene1.removeEntity(&box5);
-        scene1.removeEntity(&box3);
-
-        scene1.draw();
-        window.frame();
+    for (int i = 0; i < 8; i++)
+    {
+        delete boxs[i];
     }
 }

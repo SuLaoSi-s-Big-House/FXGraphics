@@ -14,6 +14,7 @@ namespace FX {
     // For users: 用户可以添加自己的PrintPipeline，用于自己的GraphicsPrinter派生类
 
     class GraphicsScene;
+    enum class PrimitiveMode : unsigned int;
 
     // 此文件定义了GraphicsPrinter
     // GraphicsPrinter是对OpenGL program的拓展，可以存放多个GraphicsProgram与多个GraphicsShader，组成多种渲染管线。
@@ -39,7 +40,7 @@ namespace FX {
         // 此函数会在渲染过程中由GraphicsScene调用，用户通常不需要主动调用。
         virtual void use(PrintPipeline pipe = NormalOpaquePipeline) = 0;
 
-        virtual void draw(unsigned int mode, unsigned int num) const;
+        virtual void draw(PrimitiveMode mode, unsigned int num) const;
 
         virtual void addProgram(void);
         virtual void addShader(GPUItemType type, const std::ifstream& file);
