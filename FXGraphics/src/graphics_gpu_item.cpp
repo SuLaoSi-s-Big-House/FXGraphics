@@ -2,7 +2,7 @@
 
 #include <assert.h>
 #include "basic_log.h"
-#include "graphics_window.h"
+#include "graphics_window_impl.h"
 
 namespace FX {
 
@@ -18,7 +18,7 @@ namespace FX {
 
     ItemInfo* GraphicsGPUItem::getOrCreate(bool bForceCreate)
     {
-        auto pWindow = GraphicsWindow::currentWindow();
+        auto pWindow = GraphicsWindowImpl::currentWindow();
         if (pWindow == nullptr)
         {
             assert(pWindow);
@@ -47,7 +47,7 @@ namespace FX {
         }
     }
 
-    void GraphicsGPUItem::clearItem(GraphicsWindow* pWindow)
+    void GraphicsGPUItem::clearItem(GraphicsWindowImpl* pWindow)
     {
         assert(pWindow != nullptr);
         auto itr = m_itemList.find(pWindow);

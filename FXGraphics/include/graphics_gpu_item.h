@@ -20,7 +20,7 @@ namespace FX {
         kTexture2dArray = 0x8C1A
     };
 
-    class GraphicsWindow;
+    class GraphicsWindowImpl;
     class ItemInfo;
 
     // 此文件定义了GraphicsGPUItem与ItemInfo。
@@ -34,7 +34,7 @@ namespace FX {
 
     class GraphicsGPUItem {
     protected:
-        friend class GraphicsWindow;
+        friend class GraphicsWindowImpl;
 
         explicit GraphicsGPUItem(GPUItemType type) : m_type(type) {}
         virtual ~GraphicsGPUItem(void);
@@ -45,7 +45,7 @@ namespace FX {
         // 必须通过new创建对象，用户不需要维护其生命周期。
         virtual ItemInfo* create(void) const = 0;
 
-        void clearItem(GraphicsWindow* pWindow);
+        void clearItem(GraphicsWindowImpl* pWindow);
 
     public:
         // 如果当前没有正在使用的GraphicsWindow，此函数会返回空指针。
@@ -55,7 +55,7 @@ namespace FX {
         GPUItemType type(void) const;
 
     protected:
-        std::unordered_map<GraphicsWindow*, ItemInfo*> m_itemList;
+        std::unordered_map<GraphicsWindowImpl*, ItemInfo*> m_itemList;
         const GPUItemType m_type = GPUItemType(0);
     };
 
@@ -66,7 +66,7 @@ namespace FX {
     class ItemInfo {
     protected:
         friend class GraphicsGPUItem;
-        friend class GraphicsWindow;
+        friend class GraphicsWindowImpl;
 
         explicit ItemInfo(const GraphicsGPUItem* pOwner);
 

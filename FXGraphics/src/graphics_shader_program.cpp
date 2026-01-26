@@ -5,7 +5,7 @@
 #include <iostream>
 #include "glad.h"
 #include "basic_log.h"
-#include "graphics_window.h"
+#include "graphics_window_impl.h"
 
 namespace FX {
 
@@ -93,7 +93,7 @@ namespace FX {
 
     const ProgramInfo* GraphicsProgram::get() const
     {
-        auto pWindow = GraphicsWindow::currentWindow();
+        auto pWindow = GraphicsWindowImpl::currentWindow();
         if (pWindow == nullptr)
         {
             assert(pWindow);

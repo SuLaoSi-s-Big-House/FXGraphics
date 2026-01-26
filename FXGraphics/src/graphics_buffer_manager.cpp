@@ -1,7 +1,9 @@
 ﻿#include "graphics_buffer_manager.h"
 
 #include <assert.h>
+#include "glad.h"
 #include "basic_log.h"
+#include "graphics_window_impl.h"
 #include "graphics_window.h"
 #include "graphics_entity_manager.h"
 #include "graphics_buffer_generator.h"
@@ -93,7 +95,7 @@ namespace FX {
     const BufferSet& GraphicsBufferManager::generate(const EntityList& list, EntityType type, int index)
     {
         assert(list.entityList.empty() == false);
-        assert(GraphicsWindow::currentWindow() != nullptr);
+        assert(GraphicsWindowImpl::currentWindow() != nullptr);
         auto& group = m_container[type];
         assert(group.size() > index);
         auto& buffers = group[index];
