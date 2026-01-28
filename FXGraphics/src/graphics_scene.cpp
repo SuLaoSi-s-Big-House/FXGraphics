@@ -4,7 +4,7 @@
 #include "glm.hpp"
 #include "glad.h"
 #include "basic_log.h"
-#include "graphics_window.h"
+#include "graphics_window_impl.h"
 #include "graphics_printer.h"
 #include "graphics_font_manager.h"
 #include "graphics_camera.h"
@@ -194,7 +194,7 @@ namespace FX {
 
         generate();
 
-        auto pWindow = GraphicsWindow::currentWindow();
+        auto pWindow = GraphicsWindowImpl::currentWindow();
         if (pWindow == nullptr)
         {
             assert(0);
@@ -234,6 +234,7 @@ namespace FX {
                 continue;
             }
 
+            pPrinter->setCompatible(pWindow->vendor().find("Intel") != std::string::npos);
             pPrinter->use(NormalOpaquePipeline);
 
             for (int i = 0; i < pair.second.size(); i++)
@@ -414,7 +415,7 @@ namespace FX {
             info.vpMatrix = m_pCamera->vPMatrix();
         }
 
-        auto pWindow = GraphicsWindow::currentWindow();
+        auto pWindow = GraphicsWindowImpl::currentWindow();
         assert(pWindow != nullptr);
         auto size = pWindow->size();
         info.viewport = { size.x, size.y };
@@ -432,9 +433,7 @@ namespace FX {
     {
         unbind();
 
-#if defined(_DEBUG) || defined(DEBUG)
         assert(glGetError() == 0);
-#endif
     }
 
     void GraphicsScene::unbind()

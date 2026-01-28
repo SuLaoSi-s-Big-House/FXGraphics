@@ -27,7 +27,8 @@ namespace FX {
 
     void GraphicsPrinter::draw(PrimitiveMode mode, unsigned int num) const
     {
-        glMultiDrawElementsIndirect((GLenum)mode, GL_UNSIGNED_INT, 0, num, 0);
+        assert(m_drawFunc != nullptr);
+        (this->*m_drawFunc)(mode, num);
     }
 
     void GraphicsPrinter::addProgram()
@@ -48,6 +49,15 @@ namespace FX {
         m_shaders.emplace_back(new GraphicsShader(type, source));
         _updateReady();
         _dirtyPrograms();
+    }
+
+    void GraphicsPrinter::setCompatible(bool compat)
+    {
+        if (m_compatible != compat)
+        {
+            m_compatible = compat;
+            m_drawFunc = compat ? &GraphicsPrinter::_drawLegacy : &GraphicsPrinter::_drawAdvance;
+        }
     }
 
     void GraphicsPrinter::_use(unsigned int program, const std::vector<unsigned int>& shaders)
@@ -119,6 +129,37 @@ namespace FX {
                 pProgram->setDirty(true);
             }
         }
+    }
+
+    void GraphicsPrinter::_drawAdvance(PrimitiveMode mode, unsigned int num) const
+    {
+        glMultiDrawElementsIndirect((GLenum)mode, GL_UNSIGNED_INT, 0, num, 0);
+    }
+
+    void GraphicsPrinter::_drawLegacy(PrimitiveMode mode, unsigned int num) const
+    {
+        struct DrawElementsCommand {
+            unsigned int indexNum = 0;
+            unsigned int instanceNum = 1;
+            unsigned int indexStart = 0;
+            int vertexOffset = 0;
+            unsigned int instanceOffset = 0;
+        };
+
+        int dibo = 0;
+        glGetIntegerv(GL_DRAW_INDIRECT_BUFFER_BINDING, &dibo);
+        assert(dibo != 0);
+        int size = 0;
+        glGetBufferParameteriv(GL_DRAW_INDIRECT_BUFFER, GL_BUFFER_SIZE, &size);
+        assert(size >= num * sizeof(DrawElementsCommand));
+
+        auto pData = new DrawElementsCommand[num];
+        glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, num * sizeof(DrawElementsCommand), pData);
+        for (unsigned int i = 0; i < num; i++)
+        {
+            glDrawElements((GLenum)mode, pData[i].indexNum, GL_UNSIGNED_INT, (void*)(pData[i].indexStart * sizeof(unsigned int)));
+        }
+        delete[] pData;
     }
 
     void GraphicsPrinter::addScene(GraphicsScene* pScene)

@@ -38,6 +38,8 @@ namespace FX {
 
         GraphicsInteractor& interactor(void);
 
+        const std::string& vendor(void) const;
+
         void addItem(GraphicsGPUItem* pItem);
         void removeItem(GraphicsGPUItem* pItem);
         void addToDelete(ItemInfo* pItem);
@@ -50,6 +52,7 @@ namespace FX {
         GLFWwindow* m_pWindowHandle = nullptr;
         vec2us m_windowSize = { 1280, 720 };
         std::string m_title;
+        std::string m_vendor;
         GraphicsInteractor m_interactor;
         bool m_isMultiSample = true;
 

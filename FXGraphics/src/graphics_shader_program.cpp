@@ -1,8 +1,9 @@
-#include "graphics_shader_program.h"
+﻿#include "graphics_shader_program.h"
 
 #include <assert.h>
 #include <sstream>
 #include <iostream>
+#include <cctype>
 #include "glad.h"
 #include "basic_log.h"
 #include "graphics_window_impl.h"
@@ -17,7 +18,21 @@ namespace FX {
         {
             std::stringstream buffer;
             buffer << file.rdbuf();
-            m_source = buffer.str();
+            auto source = buffer.str();
+
+            int i = 0;    // 检查字符串是否带有文件前缀
+            for (;i < source.length(); i++)
+            {
+                if (std::isprint(static_cast<unsigned char>(source[i])))
+                {
+                    break;
+                }
+            }
+
+            if (i < source.length())
+            {
+                m_source = source.substr(i);
+            }
         }
         else
         {
@@ -69,7 +84,6 @@ namespace FX {
         auto pSource = static_cast<const GraphicsShader*>(m_pOwner)->source();
         glShaderSource(m_handle, 1, &pSource, nullptr);
         glCompileShader(m_handle);
-#if defined(_DEBUG) || defined(DEBUG)
         int success = 0;
         glGetShaderiv(m_handle, GL_COMPILE_STATUS, &success);
         if (!success)
@@ -80,7 +94,6 @@ namespace FX {
             BasicLog::out(BasicLog::kError, "SHADER COMPILE FAILED!");
             std::cout << log << std::endl;
         }
-#endif
     }
 
     void GraphicsProgram::setDirty(bool isDirty)
@@ -139,7 +152,6 @@ namespace FX {
     void ProgramInfo::link() const
     {
         glLinkProgram(m_handle);
-#if defined(_DEBUG) || defined(DEBUG)
         int success = 0;
         glGetProgramiv(m_handle, GL_LINK_STATUS, &success);
         if (!success)
@@ -150,7 +162,6 @@ namespace FX {
             BasicLog::out(BasicLog::kError, "PROGRAM LINK FAILED!");
             std::cout << log << std::endl;
         }
-#endif
     }
 
 } // namespace FX

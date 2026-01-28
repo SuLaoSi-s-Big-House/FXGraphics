@@ -86,7 +86,58 @@ public:
 
 class Cylinder : public FX::GraphicsEntity {
 public:
-    Cylinder(void) : GraphicsEntity(FX::NormalFaceStripID) {}
+    Cylinder(void) : GraphicsEntity(FX::NormalFaceID)
+    {
+        m_profile.matrix = {
+            0.4, 0, 0, 0,
+            0, 0.7, 0, 0,
+            0, 0, 0.4, 0,
+            1.3, 0.7, -0.5, 1,
+        };
+    }
+
+    void generate(void) override
+    {
+        m_vertex.resize(12 * 32);
+        m_normal.resize(12 * 32);
+        for (int i = 0; i < 32; i++)
+        {
+            m_vertex[i * 12] = m_vertex[i * 12 + 3] = std::sin(static_cast<float>(FX::Math::PI * i / 16));
+            m_vertex[i * 12 + 1] = m_vertex[i * 12 + 4] = 1.0f;
+            m_vertex[i * 12 + 2] = m_vertex[i * 12 + 5] = std::cos(static_cast<float>(FX::Math::PI * i / 16));
+            m_vertex[i * 12 + 6] = m_vertex[i * 12 + 9] = std::sin(static_cast<float>(FX::Math::PI * i / 16));
+            m_vertex[i * 12 + 7] = m_vertex[i * 12 + 10] = -1.0f;
+            m_vertex[i * 12 + 8] = m_vertex[i * 12 + 11] = std::cos(static_cast<float>(FX::Math::PI * i / 16));
+            m_normal[i * 12] = m_normal[i * 12 + 2] = 0;
+            m_normal[i * 12 + 1] = 1;
+            m_normal[i * 12 + 3] = m_normal[i * 12 + 6] = std::sin(static_cast<float>(FX::Math::PI * i / 16));
+            m_normal[i * 12 + 4] = m_normal[i * 12 + 7] = 0;
+            m_normal[i * 12 + 5] = m_normal[i * 12 + 8] = std::cos(static_cast<float>(FX::Math::PI * i / 16));
+            m_normal[i * 12 + 9] = m_normal[i * 12 + 11] = 0;
+            m_normal[i * 12 + 10] = -1;
+
+        }
+        m_vertex.push_back(0); m_vertex.push_back(1); m_vertex.push_back(0);
+        m_vertex.push_back(0); m_vertex.push_back(-1); m_vertex.push_back(0);
+        m_normal.push_back(0); m_normal.push_back(1); m_normal.push_back(0);
+        m_normal.push_back(0); m_normal.push_back(-1); m_normal.push_back(0);
+        m_uv = m_normal;
+
+        m_index.resize(12 * 32);
+        for (int i = 0; i < 32; i++)
+        {
+            m_index[12 * i] = 128;
+            m_index[12 * i + 1] = 4 * i;
+            m_index[12 * i + 2] = 4 * ((i + 1) % 32);
+            m_index[12 * i + 3] = 4 * i + 1;
+            m_index[12 * i + 4] = m_index[12 * i + 7] = 4 * i + 2;
+            m_index[12 * i + 5] = m_index[12 * i + 6] = 4 * ((i + 1) % 32) + 1;
+            m_index[12 * i + 8] = 4 * ((i + 1) % 32) + 2;
+            m_index[12 * i + 9] = 4 * i + 3;
+            m_index[12 * i + 10] = 4 * ((i + 1) % 32) + 3;
+            m_index[12 * i + 11] = 129;
+        }
+    }
 };
 
 class Axis : public FX::GraphicsEntity {
@@ -111,11 +162,11 @@ int main(void)
     auto name1 = FX::GraphicsFontManager::instance().loadFontFile("./font/AlibabaPuHuiTi-3-55-Regular.ttf");
     auto name2 = FX::GraphicsFontManager::instance().loadFontFile("./font/BlueakaBeta-DB-GBK.ttf");
     //auto name2 = FX::GraphicsFontManager::instance().loadFontFile("C:/Windows/Fonts/SIMYOU.TTF");
-    FX::GraphicsFontManager::instance().generate({ name1, 20 }, "0123456789,.[](): FPS窗口大小鼠标位置在内正在拖拽");
+    FX::GraphicsFontManager::instance().generate({ name1, 20 }, "0123456789,.[](): FPS窗口大小鼠标位置在内正在拖拽fov相机αβ");
     FX::GraphicsFontManager::instance().generate({ name2, 14 }, "鼠标左中右侧键12滚轮: ↑↓");
 
     FX::TextEntity texts[14];
-    int time[6] = { 60, 60, 60, 60, 60, 60 };
+    int time[6] = { 600000, 600000, 600000, 600000, 600000, 600000 };
     FX::EntityProfile profile;
     profile.font = { name1, 20 };
     profile.color = { 100, 150, 255, 255 };
@@ -191,6 +242,8 @@ int main(void)
     scene.addEntity(&box);
     Sphere sphere;
     scene.addEntity(&sphere);
+    Cylinder cylinder;
+    scene.addEntity(&cylinder);
     Axis axiss[3] = { {{255, 0, 0, 255}, {1, 0, 0}}, {{0, 255, 0, 255}, {0, 1, 0}}, {{0, 0, 255, 255}, {0, 0, 1}} };
     scene.addEntity(axiss);
     scene.addEntity(axiss + 1);

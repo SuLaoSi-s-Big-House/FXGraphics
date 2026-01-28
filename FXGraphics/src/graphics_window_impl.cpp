@@ -126,6 +126,8 @@ namespace FX {
         m_isMultiSample ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
         glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);    // 使用OpenGL图元重启
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);    // 解除OpenGL texture 4字节对齐的限制
+
+        m_vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
     }
 
     GraphicsWindowImpl::~GraphicsWindowImpl()
@@ -206,6 +208,11 @@ namespace FX {
     GraphicsInteractor& GraphicsWindowImpl::interactor()
     {
         return m_interactor;
+    }
+
+    const std::string& GraphicsWindowImpl::vendor() const
+    {
+        return m_vendor;
     }
 
     void GraphicsWindowImpl::addItem(GraphicsGPUItem* pItem)

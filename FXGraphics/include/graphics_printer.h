@@ -46,6 +46,8 @@ namespace FX {
         virtual void addShader(GPUItemType type, const std::ifstream& file);
         virtual void addShader(GPUItemType type, const std::string& source);
 
+        void setCompatible(bool compat);
+
     protected:
         // For users:
         // 在绑定GraphicsProgram时，如果确认GraphicsProgram为脏，调用此函数重新生成GraphicsProgram并绑定。
@@ -54,6 +56,9 @@ namespace FX {
 
         virtual void _updateReady(void);
         virtual void _dirtyPrograms(void);
+
+        void _drawAdvance(PrimitiveMode mode, unsigned int num) const;
+        void _drawLegacy(PrimitiveMode mode, unsigned int num) const;
 
     private:
         void addScene(GraphicsScene* pScene);
@@ -65,7 +70,12 @@ namespace FX {
     protected:
         std::vector<std::unique_ptr<GraphicsProgram>> m_programs;
         std::vector<std::unique_ptr<GraphicsShader>> m_shaders;
+        
+        using DrawFunc = void (GraphicsPrinter::*)(PrimitiveMode, unsigned int) const;
+        DrawFunc m_drawFunc = &GraphicsPrinter::_drawAdvance;
+
         bool m_ready = false;
+        bool m_compatible = false;
     };
 
 
