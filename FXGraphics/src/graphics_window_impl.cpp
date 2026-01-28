@@ -39,14 +39,14 @@ namespace FX {
             auto itr = GraphicsWindowImpl::windowMap().find(window);
             assert(itr->second != nullptr);
 
-            GraphicsInteractor::MouseButton button = GraphicsInteractor::MouseButton::kLeft;
+            MouseButton button = MouseButton::kLeft;
             switch (point)
             {
-                case GLFW_MOUSE_BUTTON_LEFT: button = GraphicsInteractor::MouseButton::kLeft; break;
-                case GLFW_MOUSE_BUTTON_RIGHT: button = GraphicsInteractor::MouseButton::kRight; break;
-                case GLFW_MOUSE_BUTTON_MIDDLE: button = GraphicsInteractor::MouseButton::kMiddle; break;
-                case GLFW_MOUSE_BUTTON_4: button = GraphicsInteractor::MouseButton::kSide1; break;
-                case GLFW_MOUSE_BUTTON_5: button = GraphicsInteractor::MouseButton::kSide2; break;
+                case GLFW_MOUSE_BUTTON_LEFT: button = MouseButton::kLeft; break;
+                case GLFW_MOUSE_BUTTON_RIGHT: button = MouseButton::kRight; break;
+                case GLFW_MOUSE_BUTTON_MIDDLE: button = MouseButton::kMiddle; break;
+                case GLFW_MOUSE_BUTTON_4: button = MouseButton::kSide1; break;
+                case GLFW_MOUSE_BUTTON_5: button = MouseButton::kSide2; break;
                 default: break;
             }
             itr->second->interactor().addButtonAction(button, action, mods);

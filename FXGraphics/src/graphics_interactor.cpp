@@ -27,6 +27,11 @@ namespace FX {
         return m_enventFlag;
     }
 
+    const DragInfo& GraphicsInteractor::dragInfo() const
+    {
+        return m_dragInfo;
+    }
+
     double GraphicsInteractor::mouseScroll() const
     {
         return m_mouseScroll;
@@ -54,6 +59,9 @@ namespace FX {
                 if (dis > 25)    // 当鼠标位置变化超过5像素时认为是拖拽
                 {
                     m_enventFlag |= MouseDragFlag;
+                    m_dragInfo.startTime = m_mouseHistory[last].time;
+                    m_dragInfo.startPos = m_mouseHistory[last].position;
+                    m_dragInfo.button = m_mouseHistory[last].button;
                 }
             }
         }
@@ -104,6 +112,7 @@ namespace FX {
         {
             m_enventFlag |= MouseClickFlag;
             m_enventFlag &= (~MouseDragFlag);    // 按键松开时一定不再会有拖拽事件
+            m_dragInfo = DragInfo();
         }
     }
 

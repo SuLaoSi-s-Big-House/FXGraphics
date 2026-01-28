@@ -85,11 +85,6 @@ namespace FX {
                 return ret;
             }
 
-            if (textMap.empty())
-            {
-                return codes;
-            }
-
             std::set<int> texts;
             for (auto i : codes)
             {

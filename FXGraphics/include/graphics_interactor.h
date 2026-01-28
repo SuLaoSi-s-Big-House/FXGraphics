@@ -16,6 +16,20 @@ namespace FX {
     constexpr EnventFlag MouseScrollFlag = 1 << 3;
     constexpr EnventFlag KeyboardFlag = 1 << 4;
 
+    enum class MouseButton : unsigned char {
+        kLeft = 0,
+        kRight,
+        kMiddle,
+        kSide1,
+        kSide2
+    };
+
+    struct DragInfo {
+        vec2d startPos;
+        std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+        MouseButton button = MouseButton::kLeft;
+    };
+
     class GraphicsWindowImpl;
 
     class GraphicsInteractor {
@@ -26,14 +40,6 @@ namespace FX {
         ~GraphicsInteractor(void) = default;
 
     public:
-        enum class MouseButton : unsigned char {
-            kLeft = 0,
-            kRight,
-            kMiddle,
-            kSide1,
-            kSide2
-        };
-
         bool isCursorIn(void) const;
         vec2d cursorPos(void) const;
 
@@ -41,6 +47,7 @@ namespace FX {
 
         EnventFlag enventFlag(void) const;
 
+        const DragInfo& dragInfo(void) const;
         double mouseScroll(void) const;
 
         void setCursorIn(bool isIn);
@@ -70,6 +77,7 @@ namespace FX {
 
         EnventFlag m_enventFlag = 0;
 
+        DragInfo m_dragInfo;
         // TODO 记录envent数据
 
         double m_mouseScroll = 0;

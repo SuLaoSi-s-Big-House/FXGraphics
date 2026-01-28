@@ -26,6 +26,7 @@ SET(INCLUDE_LIST
     ${INCLUDE_PATH}/graphics_texture.h
     ${INCLUDE_PATH}/graphics_font_manager.h
     ${INCLUDE_PATH}/graphics_interactor.h
+    ${INCLUDE_PATH}/graphics_camera.h
 )
 
 SOURCE_GROUP(include FILES
@@ -46,6 +47,7 @@ SET(SRC_LIST
     ${SRC_PATH}/graphics_texture.cpp
     ${SRC_PATH}/graphics_font_manager.cpp
     ${SRC_PATH}/graphics_interactor.cpp
+    ${SRC_PATH}/graphics_camera.cpp
 )
 
 SOURCE_GROUP(src FILES
