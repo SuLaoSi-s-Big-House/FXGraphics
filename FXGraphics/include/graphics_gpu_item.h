@@ -1,7 +1,7 @@
 #ifndef _GRAPHICS_GPU_ITEM_H_
 #define _GRAPHICS_GPU_ITEM_H_
 
-#include <map>
+#include <unordered_map>
 #include "basic_macro.h"
 
 namespace FX {
@@ -54,7 +54,7 @@ namespace FX {
         GPUItemType type(void) const;
 
     protected:
-        std::map<GraphicsWindow*, ItemInfo*> m_itemList;
+        std::unordered_map<GraphicsWindow*, ItemInfo*> m_itemList;
         const GPUItemType m_type = GPUItemType(0);
     };
 

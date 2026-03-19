@@ -1,20 +1,33 @@
-#include "graphics_printer.h"
+﻿#include "graphics_printer.h"
 
 #include <assert.h>
 #include "glad.h"
 #include "basic_log.h"
 #include "graphics_window.h"
+#include "graphics_scene.h"
 
 namespace FX {
+
+    GraphicsPrinter::~GraphicsPrinter()
+    {
+        if (!m_sceneList.empty())
+        {
+            std::unordered_map<GraphicsScene*, unsigned int> sceneList = m_sceneList;
+            for (auto&& itr : sceneList)
+            {
+                itr.first->removePrinter(this);
+            }
+        }
+    }
 
     bool GraphicsPrinter::isReady() const
     {
         return m_ready;
     }
 
-    void GraphicsPrinter::draw(unsigned int num) const
+    void GraphicsPrinter::draw(unsigned int mode, unsigned int num) const
     {
-        glMultiDrawElementsIndirect((GLenum)m_type, GL_UNSIGNED_INT, 0, num, 0);
+        glMultiDrawElementsIndirect(mode, GL_UNSIGNED_INT, 0, num, 0);
     }
 
     void GraphicsPrinter::addProgram()
@@ -108,7 +121,39 @@ namespace FX {
         }
     }
 
-    GraphicsNormalPrinter::GraphicsNormalPrinter(PrintType type) : GraphicsPrinter(type)
+    void GraphicsPrinter::addScene(GraphicsScene* pScene)
+    {
+        assert(pScene);
+
+        auto itr = m_sceneList.find(pScene);
+        if (itr == m_sceneList.end())
+        {
+            m_sceneList.insert({ pScene, 1 });
+        }
+        else
+        {
+            itr->second++;
+        }
+    }
+
+    void GraphicsPrinter::eraseScene(GraphicsScene* pScene)
+    {
+        assert(pScene);
+
+        auto itr = m_sceneList.find(pScene);
+        assert(itr != m_sceneList.end());
+
+        if (itr->second == 1)
+        {
+            m_sceneList.erase(itr);
+        }
+        else
+        {
+            itr->second--;
+        }
+    }
+
+    GraphicsNormalPrinter::GraphicsNormalPrinter()
     {
         m_programs.emplace_back(new GraphicsProgram);
     }
