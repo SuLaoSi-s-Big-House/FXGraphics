@@ -3,6 +3,7 @@
 #include "graphics_entity.h"
 #include "graphics_scene.h"
 #include "graphics_printer.h"
+#include "graphics_camera.h"
 #include "basic_vector.h"
 
 class Box : public FX::GraphicsEntity {
@@ -72,10 +73,22 @@ int main(void)
         scene.addEntity(boxs[i]);
     }
 
+    FX::GraphicsCamera camera;
+    camera.setLookAt({ 0.0f, 0.0f, 0.0f });
+    camera.setField(-40.0f, 40.0f, -30.0f, 30.0f);
+    scene.bindCamera(&camera);
+
     int i = 0;
     int n = 0;
     while (!window1.shouldClose() && !window2.shouldClose())
     {
+        glm::vec3 position = glm::vec3(5 * std::sin(n / 60.0f), 3 * std::cos(n / 60.0f), 5 * std::cos(n / 60.0f));
+        camera.setPosition({ position.x, position.y, position.z });
+        glm::normalize(position);
+        glm::vec3 rightDir = glm::normalize(glm::vec3(-position.z, 0.0f, position.x));
+        glm::vec3 upDir = glm::normalize(glm::cross(position, rightDir));
+        camera.setUp({ upDir.x, upDir.y, upDir.z });
+
         if (n % 10 == 0)
         {
             scene.addEntity(boxs[i]);

@@ -7,6 +7,8 @@ namespace FX {
 
     namespace Math {
 
+        constexpr double PI = 3.14159265358979323846264338327950288;
+
         constexpr double TOLERANCE = 1e-6;
 
         template<typename T>
