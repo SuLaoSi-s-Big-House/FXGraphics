@@ -2,6 +2,7 @@
 #include "graphics_entity.h"
 #include "graphics_scene.h"
 #include "graphics_printer.h"
+#include "graphics_camera.h"
 #include "basic_vector.h"
 
 class Box : public FX::GraphicsEntity {
@@ -62,48 +63,25 @@ int main(void)
     Box box4(-1.0f, -2.0f, -3.0f, 1.0f);
     Box box5(-3.0f, -3.0f, -1.0f, 0.5f);
 
+    scene1.addEntity(&box1);
+    scene1.addEntity(&box2);
+    scene1.addEntity(&box3);
+    scene1.addEntity(&box4);
+    scene1.addEntity(&box5);
+
+    FX::GraphicsCamera camera;
+    // camera.setField(static_cast<float>(FX::Math::PI / 3), 4 / 3.0f);
+    camera.setField(-40.0f, 40.0f, -30.0f, 30.0f);
+    scene1.bindCamera(&camera);
+
+    int i = 0;
+
     while (!window.shouldClose())
     {
-        scene1.addEntity(&box1);
-        scene1.addEntity(&box2);
-        scene1.addEntity(&box3);
-        scene1.removeEntity(&box2);
-        scene1.addEntity(&box4);
-        scene1.addEntity(&box5);
-        scene1.addEntity(&box1);
+        camera.setPosition({ 10 * std::sin((i / 60.0f)), 3 * std::cos((float)(i / 60.0f)), 10 * std::cos((float)(i / 60.0f)) });
 
         scene1.draw();
         window.frame();
-
-        scene1.removeEntity(&box1);
-        scene1.removeEntity(&box2);
-        scene1.removeEntity(&box3);
-        scene1.removeEntity(&box4);
-        scene1.removeEntity(&box5);
-
-        scene1.draw();
-        window.frame();
-
-        scene1.addEntity(&box2);
-        scene1.addEntity(&box3);
-        scene1.addEntity(&box4);
-        scene1.addEntity(&box5);
-
-        scene1.draw();
-        window.frame();
-
-        scene1.removeEntity(&box5);
-        scene1.removeEntity(&box4);
-
-        scene1.draw();
-        window.frame();
-
-        scene1.addEntity(&box4);
-        scene1.addEntity(&box5);
-        scene1.removeEntity(&box5);
-        scene1.removeEntity(&box3);
-
-        scene1.draw();
-        window.frame();
+        i++;
     }
 }

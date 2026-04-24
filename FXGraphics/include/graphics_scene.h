@@ -9,6 +9,7 @@
 namespace FX {
 
     class GraphicsPrinter;
+    class GraphicsCamera;
 
     // 此文件定义了GraphicsScene
     // GraphicsScene管理GraphicsEntity GraphicsPrinter等与绘制相关的资源，并实现绘制的主要流程。
@@ -29,6 +30,9 @@ namespace FX {
         bool removePrinter(GraphicsPrinter* pPrinter, EntityType type);
         bool removePrinter(GraphicsPrinter* pPrinter);
 
+        void bindCamera(GraphicsCamera* pCamera);
+        void unbindCamera(void);
+
         virtual void draw(void);
 
     protected:
@@ -45,6 +49,7 @@ namespace FX {
         GraphicsEntityManager* m_pEntityManager = nullptr;
         GraphicsBufferManager* m_pBufferManager = nullptr;
         PrinterManager m_printerManager;
+        GraphicsCamera* m_pCamera = nullptr;
         GraphicsUBO m_globalUbo;
     };
 

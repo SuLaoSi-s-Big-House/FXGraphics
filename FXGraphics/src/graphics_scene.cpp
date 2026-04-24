@@ -6,11 +6,14 @@
 #include "basic_log.h"
 #include "graphics_window.h"
 #include "graphics_printer.h"
+#include "graphics_camera.h"
 
 namespace FX {
 
     namespace {
         struct NormalGlobalInfo {
+            glm::mat4 vMatrix = glm::mat4(1.0f);
+            glm::mat4 pMatrix = glm::mat4(1.0f);
             glm::mat4 vpMatrix = glm::mat4(1.0f);
             vec2i viewport = { 0, 0 };
         };
@@ -44,6 +47,10 @@ namespace FX {
             {
                 pair.second->eraseScene(this);
             }
+        }
+        if (m_pCamera != nullptr)
+        {
+            m_pCamera->eraseScene(this);
         }
     }
 
@@ -152,6 +159,31 @@ namespace FX {
         }
 
         return success;
+    }
+
+    void GraphicsScene::bindCamera(GraphicsCamera* pCamera)
+    {
+        if (pCamera == nullptr)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to bind a null pointer as a camera, discard.");
+            return;
+        }
+
+        if (m_pCamera != nullptr)
+        {
+            m_pCamera->eraseScene(this);
+        }
+        m_pCamera = pCamera;
+        pCamera->addScene(this);
+    }
+
+    void GraphicsScene::unbindCamera()
+    {
+        if (m_pCamera != nullptr)
+        {
+            m_pCamera->eraseScene(this);
+            m_pCamera = nullptr;
+        }
     }
 
     void GraphicsScene::draw()
@@ -301,11 +333,20 @@ namespace FX {
     {
         NormalGlobalInfo info;
 
+        if (m_pCamera == nullptr)
+        {
+            info.vMatrix = info.pMatrix = info.vpMatrix = GraphicsCamera::defaultVPMatrix();
+        }
+        else
+        {
+            info.vMatrix = m_pCamera->vMatrix();
+            info.pMatrix = m_pCamera->pMatrix();
+            info.vpMatrix = m_pCamera->vPMatrix();
+        }
+
         auto pWindow = GraphicsWindow::currentWindow();
         assert(pWindow != nullptr);
         auto size = pWindow->size();
-
-        info.vpMatrix = glm::mat4(1.0f);
         info.viewport = { size.x, size.y };
 
         auto pUbo = static_cast<UBOInfo*>(m_globalUbo.getOrCreate());
