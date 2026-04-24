@@ -1,6 +1,7 @@
 ﻿#include "graphics_scene.h"
 
 #include <assert.h>
+#include "glad.h"
 #include "glm.hpp"
 #include "basic_log.h"
 #include "graphics_window.h"

@@ -1,4 +1,4 @@
-#ifndef _GRAPHICS_SHADER_PROGRAM_H_
+﻿#ifndef _GRAPHICS_SHADER_PROGRAM_H_
 #define _GRAPHICS_SHADER_PROGRAM_H_
 
 #include <fstream>
