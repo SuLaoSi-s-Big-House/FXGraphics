@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <array>
+#include "glad.h"
 #include "basic_log.h"
 #include "graphics_window.h"
 #include "graphics_entity_manager.h"

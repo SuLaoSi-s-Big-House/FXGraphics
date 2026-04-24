@@ -1,152 +1,58 @@
 ﻿#include "graphics_window.h"
 
 #include <assert.h>
-#include "basic_log.h"
-#include "graphics_gpu_item.h"
+#include "graphics_window_impl.h"
 
 namespace FX {
 
     GraphicsWindow::GraphicsWindow(unsigned short width, unsigned short height, const std::string& title, bool isMultiSample)
-        : m_windowSize({ width, height }), m_bufferSize({ width, height }), m_title(title), m_isMultiSample(isMultiSample),
-          m_creationTime(std::chrono::steady_clock::now())
     {
-        // init glfw
-        if (glfwInit() == false)
-        {
-            BasicLog::out(BasicLog::kError, "CANNOT INIT GLFW!");
-            glfwTerminate();
-            return;
-        }
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        m_isMultiSample ? glfwWindowHint(GLFW_SAMPLES, 4) : glfwWindowHint(GLFW_SAMPLES, 0);
-#ifdef FX_APPLE
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-        // create window
-        m_pWindowHandle = glfwCreateWindow(m_windowSize.x, m_windowSize.y, m_title.c_str(), 0, 0);
-        if (m_pWindowHandle == nullptr)
-        {
-            BasicLog::out(BasicLog::kError, "CANNOT CREATE WINDOW [", m_title, "]!");
-        }
-
-        glfwMakeContextCurrent(m_pWindowHandle);
-        s_pCurrentWindow = this;
-        s_windowMap.insert({ m_pWindowHandle, this });
-
-        glfwSwapInterval(1);
-
-        // init glad
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-        {
-            BasicLog::out(BasicLog::kError, "CANNOT INIT OPENGL!");
-        }
-
-        m_vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
-
-        m_isMultiSample ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
-        glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
+        m_pImpl = new GraphicsWindowImpl(this, width, height, title, isMultiSample);
     }
 
     GraphicsWindow::~GraphicsWindow()
     {
-        use();
-
-        for (auto pItem : m_itemList)
-        {
-            pItem->clearItem(this);
-        }
-        m_itemList.clear();
-
-        s_windowMap.erase(m_pWindowHandle);
-        glfwDestroyWindow(m_pWindowHandle);
-
-        auto pCurrent = glfwGetCurrentContext();
-        if (pCurrent != nullptr)
-        {
-            auto itr = s_windowMap.find(pCurrent);
-            s_pCurrentWindow = itr != s_windowMap.end() ? itr->second : nullptr;
-        }
-        else
-        {
-            s_pCurrentWindow = nullptr;
-            glfwMakeContextCurrent(0);
-        }
-
-        if (s_windowMap.empty())
-        {
-            glfwTerminate();
-        }
+        assert(m_pImpl != nullptr);
+        delete m_pImpl;
     }
 
     void GraphicsWindow::use()
     {
-        if (s_pCurrentWindow != this)
-        {
-            glfwMakeContextCurrent(m_pWindowHandle);
-            m_isMultiSample ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
-            s_pCurrentWindow = this;
-        }
-
-        for (auto pItem : m_itemsToDelete)
-        {
-            delete pItem;
-        }
-        m_itemsToDelete.clear();
+        m_pImpl->use();
     }
 
     void GraphicsWindow::frame()
     {
-        if (s_pCurrentWindow != this)
-        {
-            BasicLog::out(BasicLog::kWarn, "Frame a window that is not currently used.");
-        }
-
-        glfwSwapBuffers(m_pWindowHandle);
-        glfwPollEvents();
+        m_pImpl->frame();
     }
 
     vec2us GraphicsWindow::size() const
     {
-        return m_bufferSize;
+        return m_pImpl->size();
     }
 
     bool GraphicsWindow::shouldClose() const
     {
-        return glfwWindowShouldClose(m_pWindowHandle);
+        return m_pImpl->shouldClose();
+    }
+
+    const GraphicsInteractor& GraphicsWindow::interactor() const
+    {
+        return m_pImpl->interactor();
     }
 
     const std::string& GraphicsWindow::vendor() const
     {
-        return m_vendor;
+        return m_pImpl->vendor();
     }
 
     GraphicsWindow* GraphicsWindow::currentWindow()
     {
-        return s_pCurrentWindow;
+        if (GraphicsWindowImpl::currentWindow())
+        {
+            return GraphicsWindowImpl::currentWindow()->m_pApi;
+        }
+        return nullptr;
     }
-
-    void GraphicsWindow::addItem(GraphicsGPUItem* pItem)
-    {
-        assert(pItem != nullptr);
-        m_itemList.insert(pItem);
-    }
-
-    void GraphicsWindow::removeItem(GraphicsGPUItem* pItem)
-    {
-        assert(pItem != nullptr);
-        m_itemList.erase(pItem);
-    }
-
-    void GraphicsWindow::addToDelete(ItemInfo* pItem)
-    {
-        assert(pItem != nullptr);
-        s_pCurrentWindow == this ? delete pItem : m_itemsToDelete.push_back(pItem);
-    }
-
-    GraphicsWindow* GraphicsWindow::s_pCurrentWindow = nullptr;
-    GraphicsWindow::WindowMap GraphicsWindow::s_windowMap;
 
 } // namespace FX
