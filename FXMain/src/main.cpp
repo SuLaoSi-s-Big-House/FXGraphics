@@ -1,8 +1,9 @@
-﻿#include "graphics_window.h"
+﻿//#include "graphics_window.h"
 #include "graphics_entity.h"
 #include "graphics_scene.h"
 #include "graphics_printer.h"
 #include "graphics_camera.h"
+#include "logic_camera.h"
 #include "basic_vector.h"
 
 class Box : public FX::GraphicsEntity {
@@ -16,19 +17,48 @@ public:
     void generate(void) override
     {
         m_vertex = {
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
             m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
             m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
             m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
             m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
             m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
             m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
             m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
-            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
         };
-        m_normal = m_vertex;
+        m_normal = {
+            1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,
+            -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
+            0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0,
+            0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,
+            0, 0, 1,  0, 0, 1,  0, 0, 1,  0, 0, 1,
+            0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+        };
         m_uv = m_vertex;
-
-        m_index = { 6, 4, 2, 0, 3, 1, 7, 5, FX::RestartMark, 2, 3, 6, 7, 4, 5, 0, 1 };
+        m_index = {
+            0,  1,  2,  3,  FX::RestartMark,
+            4,  5,  6,  7,  FX::RestartMark,
+            8,  9,  10, 11, FX::RestartMark,
+            12, 13, 14, 15, FX::RestartMark,
+            16, 17, 18, 19, FX::RestartMark,
+            20, 21, 22, 23
+        };
     }
 
 private:
@@ -69,17 +99,18 @@ int main(void)
     scene1.addEntity(&box4);
     scene1.addEntity(&box5);
 
-    FX::GraphicsCamera camera;
-    // camera.setField(static_cast<float>(FX::Math::PI / 3), 4 / 3.0f);
-    camera.setField(-40.0f, 40.0f, -30.0f, 30.0f);
-    scene1.bindCamera(&camera);
+    FX::LogicObserveCamera camera(window);
+    scene1.bindCamera(&camera.get());
+
+    FX::BasicBounding<> box;
+    box.expand(FX::vec3f{ -4, -4, -4 });
+    box.expand(FX::vec3f{ 5, 5, 5 });
+    camera.observe(box);
 
     int i = 0;
-
     while (!window.shouldClose())
     {
-        camera.setPosition({ 10 * std::sin((i / 60.0f)), 3 * std::cos((float)(i / 60.0f)), 10 * std::cos((float)(i / 60.0f)) });
-
+        camera.process();
         scene1.draw();
         window.frame();
         i++;

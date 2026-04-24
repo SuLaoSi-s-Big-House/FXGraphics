@@ -1,6 +1,7 @@
 #ifndef _BASIC_VECTOR_H_
 #define _BASIC_VECTOR_H_
 
+#include <cmath>
 #include "math_common.h"
 
 namespace FX {
@@ -31,6 +32,42 @@ namespace FX {
             {
                 this->x = other.x;
                 this->y = other.y;
+            }
+            return *this;
+        }
+
+        vec2 operator+(const vec2& other) const
+        {
+            return vec2{ this->x + other.x, this->y + other.y };
+        }
+
+        vec2 operator-(const vec2& other) const
+        {
+            return vec2{ this->x - other.x, this->y - other.y };
+        }
+
+        vec2 operator*(T scalar)
+        {
+            return vec2{ this->x * scalar, this->y * scalar };
+        }
+
+        friend vec2 operator*(T scalar, const vec2& vec)
+        {
+            return vec2{ vec.x * scalar, vec.y * scalar };
+        }
+
+        T length(void) const
+        {
+            return static_cast<T>(std::sqrt(this->x * this->x + this->y * this->y));
+        }
+
+        vec2& normalize(void)
+        {
+            auto len = length();
+            if (len > 0)
+            {
+                this->x /= len;
+                this->y /= len;
             }
             return *this;
         }
@@ -72,6 +109,43 @@ namespace FX {
             }
             return *this;
         }
+
+        vec3 operator+(const vec3& other) const
+        {
+            return vec3{ this->x + other.x, this->y + other.y, this->z + other.z };
+        }
+
+        vec3 operator-(const vec3& other) const
+        {
+            return vec3{ this->x - other.x, this->y - other.y, this->z - other.z };
+        }
+
+        vec3 operator*(T scalar)
+        {
+            return vec3{ this->x * scalar, this->y * scalar, this->z * scalar };
+        }
+
+        friend vec3 operator*(T scalar, const vec3& vec)
+        {
+            return vec3{ vec.x * scalar, vec.y * scalar, vec.z * scalar };
+        }
+
+        T length(void) const
+        {
+            return static_cast<T>(std::sqrt(this->x * this->x + this->y * this->y + this->z * this->z));
+        }
+
+        vec3& normalize(void)
+        {
+            auto len = length();
+            if (len > 0)
+            {
+                this->x /= len;
+                this->y /= len;
+                this->z /= len;
+            }
+            return *this;
+        }
     };
 
     using vec3f = vec3<float>;
@@ -109,6 +183,44 @@ namespace FX {
                 this->y = other.y;
                 this->z = other.z;
                 this->w = other.w;
+            }
+            return *this;
+        }
+
+        vec4 operator+(const vec4& other) const
+        {
+            return vec4{ this->x + other.x, this->y + other.y, this->z + other.z, this->w + other.w };
+        }
+
+        vec4 operator-(const vec4& other) const
+        {
+            return vec4{ this->x - other.x, this->y - other.y, this->z - other.z, this->w - other.w };
+        }
+
+        vec4 operator*(T scalar)
+        {
+            return vec4{ this->x * scalar, this->y * scalar, this->z * scalar, this->w * scalar };
+        }
+
+        friend vec4 operator*(T scalar, const vec4& vec)
+        {
+            return vec4{ vec.x * scalar, vec.y * scalar, vec.z * scalar, vec.w * scalar };
+        }
+
+        T length(void) const
+        {
+            return static_cast<T>(std::sqrt(this->x * this->x + this->y * this->y + this->z * this->z + this->w * this->w));
+        }
+
+        vec4& normalize(void)
+        {
+            auto len = length();
+            if (len > 0)
+            {
+                this->x /= len;
+                this->y /= len;
+                this->z /= len;
+                this->w /= len;
             }
             return *this;
         }

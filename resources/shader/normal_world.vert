@@ -6,12 +6,16 @@
 
 // #include "normal_profile.h"
 
+out vec4 aPosInView;
+out vec4 aNormInView;
 out vec4 aColor;
 
 void main()
 {
     mat4 model = EntityProfile[aRank.y].model;
-    gl_Position = vpMatrix * model * vec4(aPos, 1.0);
+    aPosInView = vMatrix * model * vec4(aPos, 1.0);
+    gl_Position = pMatrix * aPosInView;
+    aNormInView = normalize(vMatrix * model * vec4(aNormal, 0));
 
     aColor = EntityProfile[aRank.y].color;
 }

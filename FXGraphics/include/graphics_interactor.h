@@ -10,6 +10,7 @@ namespace FX {
 
     using EnventFlag = unsigned int;
 
+    constexpr EnventFlag NoneFlag = 0;
     constexpr EnventFlag WindowResizeFlag = 1 << 0;
     constexpr EnventFlag MouseMoveFlag = 1 << 1;
     constexpr EnventFlag MouseClickFlag = 1 << 2;
