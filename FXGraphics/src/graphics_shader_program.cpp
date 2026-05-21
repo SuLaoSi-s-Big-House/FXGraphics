@@ -1,4 +1,4 @@
-#include "graphics_shader_program.h"
+﻿#include "graphics_shader_program.h"
 
 #include <assert.h>
 #include <sstream>
@@ -17,7 +17,33 @@ namespace FX {
         {
             std::stringstream buffer;
             buffer << file.rdbuf();
-            m_source = buffer.str();
+            auto source = buffer.str();
+
+            if (source.empty())
+            {
+                assert(0);
+                BasicLog::out(BasicLog::kWarn, "The shader file is empty, please check your file.");
+                return;
+            }
+
+            int i = 0;
+            for (; i < source.length(); i++)
+            {
+                if (std::isprint(static_cast<unsigned char>(source[i])))
+                {
+                    break;
+                }
+            }
+
+            if (i < source.length())
+            {
+                m_source = source.substr(i);
+            }
+            else
+            {
+                assert(0);
+                BasicLog::out(BasicLog::kWarn, "The shader file is empty, please check your file.");
+            }
         }
         else
         {
@@ -30,6 +56,12 @@ namespace FX {
     {
         assert((type == GPUItemType::kFrgShader) || (type == GPUItemType::kVtxShader) || (type == GPUItemType::kGeoShader));
         m_source = source;
+
+        if (source.empty())
+        {
+            assert(0);
+            BasicLog::out(BasicLog::kWarn, "Shader received an empty string.");
+        }
     }
 
     const char* GraphicsShader::source() const
