@@ -176,8 +176,9 @@ namespace FX {
         beforeDraw();
 
         auto& typeMap = GraphicsEntity::entityTypeMap();
+        auto& vendor = pWindow->vendor();
 
-        auto drawImpl = [&typeMap, this](unsigned int pipe, unsigned int command) {
+        auto drawImpl = [&typeMap, &vendor, this](unsigned int pipe, unsigned int command) {
 
             for (auto& pair : m_pEntityManager->m_container)
             {
@@ -195,6 +196,7 @@ namespace FX {
                     BasicLog::out(BasicLog::kWarn, "Cannot draw entities of type [", type, "] because printer is not ready.");
                     continue;
                 }
+                pPrinter->setCompatible(vendor.find("Intel") != std::string::npos);
                 pPrinter->use(pipe);
 
                 for (int i = 0; i < pair.second.size(); i++)

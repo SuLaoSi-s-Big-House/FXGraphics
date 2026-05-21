@@ -1,4 +1,4 @@
-#ifndef _GRAPHICS_WINDOW_H_
+﻿#ifndef _GRAPHICS_WINDOW_H_
 #define _GRAPHICS_WINDOW_H_
 
 #include <string>
@@ -34,6 +34,8 @@ namespace FX {
 
         bool shouldClose(void) const;
 
+        const std::string& vendor(void) const;
+
         static GraphicsWindow* currentWindow(void);
 
     protected:
@@ -47,6 +49,7 @@ namespace FX {
         vec2us m_windowSize = { 1280, 720 };
         vec2us m_bufferSize = { 1280, 720 };
         std::string m_title;
+        std::string m_vendor;
         const std::chrono::steady_clock::time_point m_creationTime;
         bool m_isMultiSample = true;
 
