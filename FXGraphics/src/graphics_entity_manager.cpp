@@ -38,9 +38,16 @@ namespace FX {
 
         int i = 0;
 
-        while (entityList[i] != nullptr)
+        while (i < entityList.size() && entityList[i] != nullptr)
         {
             i++;
+        }
+
+        if (i == entityList.size())
+        {
+            assert(0);
+            invalidNum = 0;
+            return;
         }
 
         setRebuildStart(i);
@@ -113,7 +120,7 @@ namespace FX {
         pointSum.resize(entityList.size() + 1, 0);
         indexSum.resize(entityList.size() + 1, 0);
 
-        for (auto i = rebuildStart; i < entityList.size(); i++)
+        for (auto i = static_cast<unsigned int>(rebuildStart); i < entityList.size(); i++)
         {
             auto pEntity = entityList[i];
             if (pEntity != nullptr)

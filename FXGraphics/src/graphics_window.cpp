@@ -1,4 +1,4 @@
-#include "graphics_window.h"
+﻿#include "graphics_window.h"
 
 #include <assert.h>
 #include "basic_log.h"
@@ -43,6 +43,8 @@ namespace FX {
         {
             BasicLog::out(BasicLog::kError, "CANNOT INIT OPENGL!");
         }
+
+        m_vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
 
         m_isMultiSample ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
         glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
@@ -114,6 +116,11 @@ namespace FX {
     bool GraphicsWindow::shouldClose() const
     {
         return glfwWindowShouldClose(m_pWindowHandle);
+    }
+
+    const std::string& GraphicsWindow::vendor() const
+    {
+        return m_vendor;
     }
 
     GraphicsWindow* GraphicsWindow::currentWindow()

@@ -32,7 +32,11 @@ namespace FX {
         virtual ~GraphicsPrinter(void);
 
     public:
+        using DrawFunc = void (GraphicsPrinter::*)(PrimitiveMode, unsigned int) const;
+
         bool isReady(void) const;
+
+        void setCompatible(bool compatible);
 
         // For users:
         // 派生类需要实现use函数，通常包含切换OpenGL状态与绑定GraphicsProgram。
@@ -55,6 +59,9 @@ namespace FX {
         virtual void _updateReady(void);
         virtual void _dirtyPrograms(void);
 
+        void _drawAdvance(PrimitiveMode mode, unsigned int num) const;
+        void _drawLegacy(PrimitiveMode mode, unsigned int num) const;
+
     private:
         void addScene(GraphicsScene* pScene);
         void eraseScene(GraphicsScene* pScene);
@@ -65,7 +72,9 @@ namespace FX {
     protected:
         std::vector<std::unique_ptr<GraphicsProgram>> m_programs;
         std::vector<std::unique_ptr<GraphicsShader>> m_shaders;
+        DrawFunc m_drawFunc = &GraphicsPrinter::_drawAdvance;
         bool m_ready = false;
+        bool m_compatible = false;
     };
 
 

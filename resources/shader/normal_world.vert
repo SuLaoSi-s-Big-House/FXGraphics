@@ -1,10 +1,8 @@
 ﻿#version 430 core
 
-// #include "normal_input.h"
-
-// #include "normal_uniform.h"
-
-// #include "normal_profile.h"
+#include "normal_input.h"
+#include "normal_uniform.h"
+#include "normal_profile.h"
 
 out vec4 aColor;
 
