@@ -106,6 +106,11 @@ namespace FX {
         glfwPollEvents();
     }
 
+    vec2us GraphicsWindow::size() const
+    {
+        return m_bufferSize;
+    }
+
     bool GraphicsWindow::shouldClose() const
     {
         return glfwWindowShouldClose(m_pWindowHandle);
