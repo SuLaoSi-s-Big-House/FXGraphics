@@ -53,6 +53,25 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
     glfw
     FXBasic
     FXGraphics
+    TKernel
+    TKMath
+    TKG2d
+    TKG3d
+    TKGeomBase
+    TKGeomAlgo
+    TKBRep
+    TKTopAlgo
+    TKPrim
+    TKBO
+    TKShHealing
+    TKFillet
+    TKOffset
+    TKMesh
+    TKBool
+    TKXSBase
+    TKDESTEP
+    TKDEIGES
+    TKDESTL
 )
 
 SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
