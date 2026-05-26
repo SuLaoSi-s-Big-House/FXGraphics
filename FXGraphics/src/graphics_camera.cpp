@@ -1,5 +1,6 @@
 ﻿#include "graphics_camera.h"
 
+#include "glm.hpp"
 #include "graphics_scene.h"
 
 namespace FX {
@@ -95,6 +96,16 @@ namespace FX {
         m_near = near;
         m_far = far;
         updateMatrix();
+    }
+
+    float GraphicsCamera::near() const
+    {
+        return m_near;
+    }
+
+    float GraphicsCamera::far() const
+    {
+        return m_far;
     }
 
     const glm::mat4& GraphicsCamera::vMatrix() const

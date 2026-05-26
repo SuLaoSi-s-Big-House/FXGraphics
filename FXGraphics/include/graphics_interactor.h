@@ -10,6 +10,7 @@ namespace FX {
 
     using EventFlag = unsigned int;
 
+    constexpr EventFlag NoneFlag = 0;
     constexpr EventFlag WindowResizeFlag = 1 << 0;
     constexpr EventFlag MouseMoveFlag = 1 << 1;
     constexpr EventFlag MouseClickFlag = 1 << 2;

@@ -29,6 +29,8 @@ namespace FX {
         void setField(float left, float right, float bottom, float top);
         void setField(float fov, float ratio);
         void setNearFar(float near, float far);
+        float near(void) const;
+        float far(void) const;
 
         const glm::mat4& vMatrix(void) const;
         const glm::mat4& pMatrix(void) const;
