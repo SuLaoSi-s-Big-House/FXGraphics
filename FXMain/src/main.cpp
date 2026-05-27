@@ -84,7 +84,8 @@ public:
         if (!FX::Math::isEqual(m_scale, scale))
         {
             m_scale = scale;
-            setDirty(FX::DataDirty);
+            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+            setDirty(FX::MatrixDirty);
         }
     }
 
@@ -176,7 +177,8 @@ public:
         if (!FX::Math::isEqual(m_scale, scale))
         {
             m_scale = scale;
-            setDirty(FX::DataDirty);
+            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+            setDirty(FX::MatrixDirty);
         }
     }
 
@@ -267,9 +269,13 @@ int main(void)
 
         if (n % 10 == 0)
         {
-            scene.addEntity(boxs[i]);
+            FX::EntityProfile profile = boxs[i]->profile();
+            profile.visible = true;
+            boxs[i]->setProfile(profile);
             i = range(rEngine);
-            scene.removeEntity(boxs[i]);
+            profile = boxs[i]->profile();
+            profile.visible = false;
+            boxs[i]->setProfile(profile);
         }
 
         window1.use();

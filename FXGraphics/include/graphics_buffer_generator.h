@@ -91,6 +91,8 @@ namespace FX {
     struct NormalProfileData {
         glm::mat4 matrix;
         vec4f color;
+        vec4f custom1;
+        vec4f custom2;
     };
 
     template<class T>
@@ -100,12 +102,20 @@ namespace FX {
     }
 
     template<>
-    void exportProfile(const GraphicsEntity*, NormalProfileData* pDest)
+    void exportProfile(const GraphicsEntity* pEntity, NormalProfileData* pDest)
     {
-        //assert(pEntity);
+        assert(pEntity);
         assert(pDest);
-        pDest->matrix = glm::mat4(1.0f);
-        pDest->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        auto& profile = pEntity->profile();
+        pDest->matrix = profile.matrix;
+        pDest->color = {
+            profile.color.r / 255.0f,
+            profile.color.g / 255.0f,
+            profile.color.b / 255.0f,
+            profile.color.a / 255.0f,
+        };
+        pDest->custom1 = profile.custom1;
+        pDest->custom2 = profile.custom2;
     }
 
     // command //////////////////////////////////////////////////////////

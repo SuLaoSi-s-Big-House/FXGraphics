@@ -248,10 +248,10 @@ namespace FX {
             for (int i = 0; i < list.entityList.size(); i++)
             {
                 auto pEntity = list.entityList[i];
-                if (pEntity != nullptr && true) // visible
+                if (pEntity != nullptr && pEntity->profile().visible)
                 {
                     auto num = list.indexSum[i + 1] - list.indexSum[i];
-                    if (true) // opaque
+                    if (pEntity->profile().color.a == 255)
                     {
                         if (lastCommand == NormalOpaqueCommand)
                         {
