@@ -5,6 +5,21 @@
 
 namespace FX {
 
+    bool GroupPos::valid() const
+    {
+        return first >= 0 && second >= 0;
+    }
+
+    bool Font::operator==(const Font& other) const
+    {
+        return this->name == other.name && this->size == other.size;
+    }
+
+    bool Font::valid() const
+    {
+        return name.empty() == false && size > 0;
+    }
+
     GraphicsEntity::~GraphicsEntity()
     {
         if (!m_managerList.empty())
@@ -72,6 +87,11 @@ namespace FX {
         {
             dirtyType |= VisibleDirty;
         }
+        if ((m_profile.font == profile.font) == false)
+        {
+            dirtyType |= DataDirty;
+            dirtyType |= FontDirty;
+        }
 
         m_profile = profile;
 
@@ -95,7 +115,9 @@ namespace FX {
             m_dataDirty = true;
         }
 
-        for (auto& pair : m_managerList)
+        // 现在的置脏可能会导致删除加入，所以临时拷贝一份
+        std::unordered_map<GraphicsEntityManager*, GroupPos> managerList = m_managerList;
+        for (auto& pair : managerList)
         {
             pair.first->dirtyEntity(this, type);
         }
@@ -122,7 +144,8 @@ namespace FX {
         {NormalFaceID, PrimitiveMode::kTriangles},
         {NormalLineStripID, PrimitiveMode::kLineStrip},
         {NormalFaceStripID, PrimitiveMode::kTriangleStrip},
-        {NormalPointID, PrimitiveMode::kPoints}
+        {NormalPointID, PrimitiveMode::kPoints},
+        {ScreenTextID, PrimitiveMode::kTriangles}
     };
 
     bool GraphicsEntity::isDataDirty() const

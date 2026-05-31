@@ -16,7 +16,8 @@ namespace FX {
         kProgram = 0x82E2,
         kVtxShader = 0x8B31,
         kFrgShader = 0x8B30,
-        kGeoShader = 0x8DD9
+        kGeoShader = 0x8DD9,
+        kTexture2dArray = 0x8C1A
     };
 
     class GraphicsWindowImpl;

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <string>
 #include <limits>
 #include "glm.hpp"
 
@@ -50,15 +51,21 @@ namespace FX {
         int first = -1;
         int second = -1;
 
-        bool valid(void) const
-        {
-            return first >= 0 && second >= 0;
-        }
+        bool valid(void) const;
+    };
+
+    struct Font {
+        std::string name = "Arial";
+        unsigned char size = 16;
+
+        bool operator==(const Font& other) const;
+        bool valid(void) const;
     };
 
     // 实体属性
     struct EntityProfile {
         glm::mat4 matrix = glm::mat4(1.0f);
+        Font font;
         vec4uc color = { 255, 255, 255, 255 };
         bool visible = true;
         vec4f custom1;    // 预留属性，修改后用户需要自行调用setDirty通知图形系统

@@ -5,6 +5,7 @@
 #include "graphics_scene.h"
 #include "graphics_printer.h"
 #include "graphics_camera.h"
+#include "graphics_font_manager.h"
 #include "logic_camera.h"
 #include "basic_vector.h"
 
@@ -193,6 +194,12 @@ std::uniform_int_distribution<> range(0, 7);
 
 int main(void)
 {
+    auto name1 = FX::GraphicsFontManager::instance().loadFontFile("./font/HarmonyOS_Sans_SC_Regular.ttf");
+    auto name2 = FX::GraphicsFontManager::instance().loadFontFile("./font/AlibabaPuHuiTi-3-55-Regular.ttf");
+
+    FX::GraphicsFontManager::instance().prepare({ name1, 16 }, "123@#$abc你我他αβγの");
+    auto vertex = FX::GraphicsFontManager::instance().queryStringVertex({ name1, 16 }, "123@#$abc你我他αβγの");
+
     FX::GraphicsWindow window1(800, 600);
     window1.use();
     window1.frame();

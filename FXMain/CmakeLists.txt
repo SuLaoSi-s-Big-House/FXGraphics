@@ -36,7 +36,7 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PRIVATE
     ${THIRDPARTY_PATH}/glad/include
     ${THIRDPARTY_PATH}/glfw/include/GLFW
     ${THIRDPARTY_PATH}/glm
-    ${THIRDPARTY_PATH}/stb
+    ${THIRDPARTY_PATH}/stb/include
     ${FXG_ROOT_DIR}/FXMath/include
     ${FXG_ROOT_DIR}/FXBasic/include
     ${FXG_ROOT_DIR}/FXGraphics/include

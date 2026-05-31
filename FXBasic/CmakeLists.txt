@@ -16,6 +16,7 @@ SET(INCLUDE_LIST
     ${INCLUDE_PATH}/basic_vector.h
     ${INCLUDE_PATH}/basic_log.h
     ${INCLUDE_PATH}/basic_bounding.h
+    ${INCLUDE_PATH}/basic_image.h
 )
 
 SOURCE_GROUP(include FILES

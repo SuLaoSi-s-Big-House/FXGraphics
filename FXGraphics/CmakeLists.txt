@@ -25,6 +25,8 @@ SET(INCLUDE_LIST
     ${INCLUDE_PATH}/graphics_buffer_manager.h
     ${INCLUDE_PATH}/graphics_interactor.h
     ${INCLUDE_PATH}/graphics_camera.h
+    ${INCLUDE_PATH}/graphics_texture.h
+    ${INCLUDE_PATH}/graphics_font_manager.h
 )
 
 SOURCE_GROUP(include FILES
@@ -44,6 +46,8 @@ SET(SRC_LIST
     ${SRC_PATH}/graphics_buffer_manager.cpp
     ${SRC_PATH}/graphics_interactor.cpp
     ${SRC_PATH}/graphics_camera.cpp
+    ${SRC_PATH}/graphics_texture.cpp
+    ${SRC_PATH}/graphics_font_manager.cpp
 )
 
 SOURCE_GROUP(src FILES
@@ -61,7 +65,7 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PRIVATE
     ${THIRDPARTY_PATH}/glad/include
     ${THIRDPARTY_PATH}/glfw/include/GLFW
     ${THIRDPARTY_PATH}/glm
-    ${THIRDPARTY_PATH}/stb
+    ${THIRDPARTY_PATH}/stb/include
     ${FXG_ROOT_DIR}/FXMath/include
     ${FXG_ROOT_DIR}/FXBasic/include
 )
