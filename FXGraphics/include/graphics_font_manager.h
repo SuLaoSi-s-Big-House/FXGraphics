@@ -29,7 +29,7 @@ namespace FX {
 
         void prepare(const Font& font, const std::string& texts);
 
-        FontInfo queryFont(const Font& font) const;
+        FontInfo queryFont(const Font& font);
         StringVertex queryStringVertex(const Font& font, const std::string& texts);
 
     private:

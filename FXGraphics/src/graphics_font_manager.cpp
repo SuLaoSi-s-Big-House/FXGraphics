@@ -436,7 +436,7 @@ namespace FX {
         friend class GraphicsFontManager;
 
         void prepare(const Font& font, const std::string& texts);
-        FontInfo queryFont(const Font& font) const;
+        FontInfo queryFont(const Font& font);
         StringVertex queryStringVertex(const Font& font, const std::string& texts);
 
     private:
@@ -470,7 +470,7 @@ namespace FX {
         m_pImpl->prepare(font, texts);
     }
 
-    FontInfo GraphicsFontManager::queryFont(const Font& font) const
+    FontInfo GraphicsFontManager::queryFont(const Font& font)
     {
         return m_pImpl->queryFont(font);
     }
@@ -513,18 +513,29 @@ namespace FX {
         m_textManager.generate(font, pFontFile, codes);
     }
 
-    FontInfo GraphicsFontManagerImpl::queryFont(const Font& font) const
+    FontInfo GraphicsFontManagerImpl::queryFont(const Font& font)
     {
         FontInfo ret;
 
-        auto itr = m_textManager.textContainer.find(font);
-        if (itr == m_textManager.textContainer.end())
+        if (font.valid() == false)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to query an invalid font, discard.");
+            return ret;
+        }
+
+        auto pFontFile = m_fontManager.find(font.name);
+        if (pFontFile == nullptr)
         {
             BasicLog::out(BasicLog::kWarn, "Font [", font.name, "] dose not exist or not loaded.");
             return ret;
         }
 
-        ret.pTexture = itr->second.pTexture.get();
+        if (m_textManager.textContainer.count(font) == 0)
+        {
+            initFontData(font, pFontFile, m_textManager.textContainer[font]);
+        }
+
+        ret.pTexture = m_textManager.textContainer[font].pTexture.get();
         return ret;
     }
 

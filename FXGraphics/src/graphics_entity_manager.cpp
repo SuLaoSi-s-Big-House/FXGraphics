@@ -1,6 +1,7 @@
 ﻿#include "graphics_entity_manager.h"
 
 #include <assert.h>
+#include "basic_log.h"
 
 namespace FX {
 
@@ -181,32 +182,13 @@ namespace FX {
             return false;
         }
 
-        auto& group = m_container[pEntity->type()];
-
-        int i = 0;
-        for (; i < group.size(); i++)
-        {
-            if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
-            {
-                break;
-            }
-        }
-
-        if (i == group.size())
-        {
-            EntityList newList;
-            newList.pOwner = this;
-            newList.index = i;
-            group.emplace_back(std::move(newList));
-        }
-
-        auto& list = group[i];
+        auto& list = findBestListForEntity(pEntity);
         int j = static_cast<int>(list.entityList.size());
 
         list.entityList.push_back(pEntity);
         list.setRebuildStart(j);
 
-        pEntity->setGroupPos(this, { i, j });
+        pEntity->setGroupPos(this, { list.index, j });
 
         return true;
     }
@@ -250,6 +232,19 @@ namespace FX {
 
         auto& list = m_container[pEntity->type()][pos.first];
         assert(list.entityList[pos.second] == pEntity);
+
+        if (type & FontDirty && pEntity->type() == ScreenTextID)
+        {
+            list.entityList[pos.second] = nullptr;
+            list.invalidNum++;
+            list.commandList.insert(pos.second);
+            list.matrixList.erase(pos.second);
+            list.profileList.erase(pos.second);
+            pEntity->eraseGroup(this);
+
+            addEntity(pEntity);
+            return true;
+        }
 
         if (list.rebuildStart >= 0 && list.rebuildStart <= pos.second)
         {
@@ -296,6 +291,55 @@ namespace FX {
         }
 
         return true;
+    }
+
+    EntityList& GraphicsEntityManager::findBestListForEntity(GraphicsEntity* pEntity)
+    {
+        assert(pEntity != nullptr);
+        assert(pEntity->groupPos(this).valid() == false);
+
+        int i = 0;
+        auto& group = m_container[pEntity->type()];
+
+        if (pEntity->type() == ScreenTextID)
+        {
+            if (pEntity->profile().font.valid() == false)
+            {
+                BasicLog::out(BasicLog::kWarn, "Trying to add a text entity with invalid font, which may lead to unexpected behavior.");
+            }
+
+            for (; i < group.size(); i++)
+            {
+                if (group[i].font == pEntity->profile().font && group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (; i < group.size(); i++)
+            {
+                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+                {
+                    break;
+                }
+            }
+        }
+
+        if (i == group.size())
+        {
+            EntityList newList;
+            newList.pOwner = this;
+            newList.index = i;
+            if (pEntity->type() == ScreenTextID)
+            {
+                newList.font = pEntity->profile().font;
+            }
+            group.emplace_back(std::move(newList));
+        }
+
+        return group[i];
     }
 
 } // namespace FX

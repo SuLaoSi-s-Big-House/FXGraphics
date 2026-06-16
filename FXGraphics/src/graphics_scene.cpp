@@ -7,6 +7,8 @@
 #include "graphics_window.h"
 #include "graphics_printer.h"
 #include "graphics_camera.h"
+#include "graphics_texture.h"
+#include "graphics_font_manager.h"
 
 namespace FX {
 
@@ -240,6 +242,25 @@ namespace FX {
                         continue;
                     }
                     assert(list.isDirty() == false);
+
+                    if (pair.first == ScreenTextID)
+                    {
+                        if (pipe != NormalTransCommand || list.font.valid() == false)
+                        {
+                            continue;
+                        }
+
+                        auto fontInfo = GraphicsFontManager::instance().queryFont(list.font);
+
+                        if (fontInfo.pTexture == nullptr)
+                        {
+                            continue;
+                        }
+
+                        auto pTexture = static_cast<TextureInfo*>(const_cast<GraphicsTexture*>(fontInfo.pTexture)->getOrCreate());
+                        assert(pTexture != nullptr);
+                        pTexture->bind(TextTextureUnit);
+                    }
 
                     auto& buffers = m_pBufferManager->generate(list, type, i);
 

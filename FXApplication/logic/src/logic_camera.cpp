@@ -139,6 +139,7 @@ namespace FX {
                 {
                     m_camera.setField(DEFAULT_OBSERVE_FOV, m_viewport.x / m_viewport.y);
                 }
+                m_windowSizeBak = size;
             }
         }
 

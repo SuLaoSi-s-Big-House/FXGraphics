@@ -98,7 +98,7 @@ namespace FX {
         setDirty(dirtyType);
     }
 
-    const EntityProfile& GraphicsEntity::profile() const
+    const EntityProfile& GraphicsEntity::profile()
     {
         return m_profile;
     }

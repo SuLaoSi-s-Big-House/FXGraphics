@@ -6,6 +6,7 @@
 #include "graphics_printer.h"
 #include "graphics_camera.h"
 #include "graphics_font_manager.h"
+#include "surf_text_item.h"
 #include "logic_camera.h"
 #include "basic_vector.h"
 
@@ -197,9 +198,6 @@ int main(void)
     auto name1 = FX::GraphicsFontManager::instance().loadFontFile("./font/HarmonyOS_Sans_SC_Regular.ttf");
     auto name2 = FX::GraphicsFontManager::instance().loadFontFile("./font/AlibabaPuHuiTi-3-55-Regular.ttf");
 
-    FX::GraphicsFontManager::instance().prepare({ name1, 16 }, "123@#$abc你我他αβγの");
-    auto vertex = FX::GraphicsFontManager::instance().queryStringVertex({ name1, 16 }, "123@#$abc你我他αβγの");
-
     FX::GraphicsWindow window1(800, 600);
     window1.use();
     window1.frame();
@@ -231,10 +229,19 @@ int main(void)
     printer2.addShader(FX::GPUItemType::kFrgShader, ifs);
     ifs.close();
 
+    FX::GraphicsNormalPrinter printer3;
+    ifs.open("./shader/normal_screen_text.vert");
+    printer3.addShader(FX::GPUItemType::kVtxShader, ifs);
+    ifs.close();
+    ifs.open("./shader/normal_screen_text.frag");
+    printer3.addShader(FX::GPUItemType::kFrgShader, ifs);
+    ifs.close();
+
     FX::GraphicsScene scene;
     scene.addPrinter(&printer2, FX::NormalFaceStripID);
     scene.addPrinter(&printer1, FX::NormalFaceID);
     scene.addPrinter(&printer1, FX::NormalLineID);
+    scene.addPrinter(&printer3, FX::ScreenTextID);
     for (int i = 0; i < 8; i++)
     {
         scene.addEntity(boxs[i]);
@@ -262,10 +269,71 @@ int main(void)
     box.expand(FX::vec3f{ -6, -6, -6 });
     camera.observe(box);
 
+    FX::SurfTextEntity text1;
+    {
+        auto profile = text1.profile();
+        profile.font = { name1, 16 };
+        profile.color = { 0, 200, 255, 255 };
+        text1.setProfile(profile);
+        scene.addEntity(&text1);
+        text1.setPosition({ 5, 5 });
+    }
+
+    FX::SurfTextEntity text2;
+    {
+        auto profile = text2.profile();
+        profile.font = { name1, 12 };
+        profile.color = { 200, 200, 200, 255 };
+        text2.setProfile(profile);
+        scene.addEntity(&text2);
+        text2.setPosition({ 5, 545 });
+    }
+
     int i = 0;
     int n = 0;
+    long long sumT = 0;
+    int frames = 0;
+    int fps = 0;
+    auto last = std::chrono::high_resolution_clock::now();
     while (!window1.shouldClose() && !window2.shouldClose())
     {
+        auto now = std::chrono::high_resolution_clock::now();
+        auto dur = std::chrono::duration_cast<std::chrono::microseconds>(now - last).count();
+        last = now;
+        sumT += dur;
+
+        auto& interactor = window1.interactor();
+        auto flag = interactor.enventFlag();
+
+        {
+            if (sumT >= 5e5)
+            {
+                fps = static_cast<int>(1e6f * frames / sumT + 0.5f);
+            }
+
+            std::string str = "FPS: " + std::to_string(fps) + "\n";
+
+            auto size = window1.size();
+            str += "窗口大小: [" + std::to_string(size.x) + ", " + std::to_string(size.y) + "]\n";
+
+            if (interactor.isCursorIn())
+            {
+                auto pos = interactor.cursorPos();
+                str += "鼠标位置: (" + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ")\n";
+            }
+            else
+            {
+                str += "\n";
+            }
+
+            if (flag & FX::MouseDragFlag)
+            {
+                str += "正在拖拽\n";
+            }
+
+            text1.setText(str);
+        }
+
         camera.process();
         axisX.setScale(camera.scale());
         coneX.setScale(camera.scale());
@@ -273,6 +341,28 @@ int main(void)
         coneY.setScale(camera.scale());
         axisZ.setScale(camera.scale());
         coneZ.setScale(camera.scale());
+
+        {
+            auto& cam = camera.get();
+            auto& position = cam.position();
+            auto& lookAt = cam.lookAt();
+            glm::vec3 dir = glm::vec3(position.x - lookAt.x, position.y - lookAt.y, position.z - lookAt.z);
+            auto dis = glm::length(dir);
+            dir = glm::normalize(dir);
+
+            std::string str = "观察中心: (" + std::to_string(lookAt.x) + ", " + std::to_string(lookAt.y) + ", " + std::to_string(lookAt.z) + ")\n";
+            str += "相机方向: (" + std::to_string(dir.x) + ", " + std::to_string(dir.y) + ", " + std::to_string(dir.z) + ")\n";
+            str += "相机距离: " + std::to_string(dis) + "\n";
+            str += "缩放比例: " + std::to_string(camera.scale());
+
+            text2.setText(str);
+
+            if (flag & FX::WindowResizeFlag)
+            {
+                auto size = window1.size();
+                text2.setPosition({ 5, size.y - 55 });
+            }
+        }
 
         if (n % 10 == 0)
         {
@@ -296,7 +386,13 @@ int main(void)
             window2.frame();
         }
 
+        if (sumT >= 5e5)
+        {
+            sumT = frames = 0;
+        }
+
         n++;
+        frames++;
     }
 
     for (int i = 0; i < 8; i++)

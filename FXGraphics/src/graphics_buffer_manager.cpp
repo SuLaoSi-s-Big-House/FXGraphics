@@ -251,7 +251,7 @@ namespace FX {
                 if (pEntity != nullptr && pEntity->profile().visible)
                 {
                     auto num = list.indexSum[i + 1] - list.indexSum[i];
-                    if (pEntity->profile().color.a == 255)
+                    if (pEntity->profile().color.a == 255 && type != ScreenTextID)
                     {
                         if (lastCommand == NormalOpaqueCommand)
                         {

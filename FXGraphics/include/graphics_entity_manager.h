@@ -63,6 +63,9 @@ namespace FX {
         bool dirtyEntity(GraphicsEntity* pEntity, DirtyType type);
 
     protected:
+        EntityList& findBestListForEntity(GraphicsEntity* pEntity);
+
+    protected:
         using EntityGroup = std::vector<EntityList>;
         using EntityContainer = std::unordered_map<EntityType, EntityGroup>;
 

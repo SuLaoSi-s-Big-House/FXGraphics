@@ -96,13 +96,13 @@ namespace FX {
     };
 
     template<class T>
-    void exportProfile(const GraphicsEntity* pEntity, T* pDest)
+    void exportProfile(GraphicsEntity* pEntity, T* pDest)
     {
         static_assert(false, "Users should implement this function for custom type.");
     }
 
     template<>
-    void exportProfile(const GraphicsEntity* pEntity, NormalProfileData* pDest)
+    void exportProfile(GraphicsEntity* pEntity, NormalProfileData* pDest)
     {
         assert(pEntity);
         assert(pDest);
