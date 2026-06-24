@@ -12,6 +12,7 @@ SET(SRC_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
 SET(THIRDPARTY_PATH ${FXG_ROOT_DIR}/thirdparty)
 
 SET(INCLUDE_LIST
+    ${INCLUDE_PATH}/compass.h
 )
 
 SOURCE_GROUP(include FILES
@@ -20,6 +21,7 @@ SOURCE_GROUP(include FILES
 
 SET(SRC_LIST
     ${SRC_PATH}/main.cpp
+    ${SRC_PATH}/compass.cpp
 )
 
 SOURCE_GROUP(src FILES
@@ -42,6 +44,7 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PRIVATE
     ${FXG_ROOT_DIR}/FXGraphics/include
     ${FXG_ROOT_DIR}/FXApplication/logic/include
     ${FXG_ROOT_DIR}/FXApplication/surface/include
+    ${FXG_ROOT_DIR}/FXMain/include
 )
 
 TARGET_LINK_DIRECTORIES(${PROJECT_NAME} PRIVATE

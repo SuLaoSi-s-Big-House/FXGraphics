@@ -87,11 +87,13 @@ namespace FX {
         friend struct EntityList;
 
         explicit GraphicsEntity(EntityType type) : m_type(type) {}
-        virtual ~GraphicsEntity(void);
+
 
         DELETE_COPY_AND_MOVE_CONSTRUCT(GraphicsEntity);
 
     public:
+        virtual ~GraphicsEntity(void);
+
         // 派生类需要实现generate函数以生成顶点数据，包括顶点、法向、uv、索引等。
         // 图形系统会在绘制前调用此函数，用户通常不需要主动调用。
         // 此函数仅在m_dataDirty为true时被调用，如果用户需要更新GraphicsEntity的顶点数据，应当将m_dataDirty设置为true。

@@ -437,6 +437,7 @@ namespace FX {
 
         void prepare(const Font& font, const std::string& texts);
         FontInfo queryFont(const Font& font);
+        TextInfo queryText(const Font& font, const std::string& text);
         StringVertex queryStringVertex(const Font& font, const std::string& texts);
 
     private:
@@ -480,6 +481,11 @@ namespace FX {
         return m_pImpl->queryStringVertex(font, texts);
     }
 
+    TextInfo GraphicsFontManager::queryText(const Font& font, const std::string& text)
+    {
+        return m_pImpl->queryText(font, text);
+    }
+
     void GraphicsFontManagerImpl::prepare(const Font& font, const std::string& texts)
     {
         if (texts.empty())
@@ -510,7 +516,10 @@ namespace FX {
         auto& textMap = m_textManager.textContainer[font].textMap;
         collectNew(textMap, codes);
 
-        m_textManager.generate(font, pFontFile, codes);
+        if (codes.empty() == false)
+        {
+            m_textManager.generate(font, pFontFile, codes);
+        }
     }
 
     FontInfo GraphicsFontManagerImpl::queryFont(const Font& font)
@@ -536,6 +545,22 @@ namespace FX {
         }
 
         ret.pTexture = m_textManager.textContainer[font].pTexture.get();
+        return ret;
+    }
+
+    TextInfo GraphicsFontManagerImpl::queryText(const Font& font, const std::string& text)
+    {
+        prepare(font, text);
+        auto& fontData = m_textManager.textContainer[font];
+        auto codes = utf8ToUnicode({ text });
+        auto& pos = fontData.textMap[codes[0]];
+        auto& textData = fontData.textList[pos.x][pos.y].data;
+        TextInfo ret = {{
+            static_cast<int>(textData.xoff),
+            static_cast<int>(textData.xoff + textData.x1 - textData.x0),
+            static_cast<int>(fontData.ascent + textData.yoff),
+            static_cast<int>(fontData.ascent + textData.yoff + textData.y1 - textData.y0)
+        }};
         return ret;
     }
 

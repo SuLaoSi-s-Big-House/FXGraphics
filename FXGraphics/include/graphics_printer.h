@@ -29,9 +29,10 @@ namespace FX {
         friend class GraphicsScene;
 
         GraphicsPrinter(void) = default;
-        virtual ~GraphicsPrinter(void);
+
 
     public:
+        virtual ~GraphicsPrinter(void);
         using DrawFunc = void (GraphicsPrinter::*)(PrimitiveMode, unsigned int) const;
 
         bool isReady(void) const;

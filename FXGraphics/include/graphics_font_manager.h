@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "basic_vector.h"
 
 namespace FX {
 
@@ -12,6 +13,10 @@ namespace FX {
 
     struct FontInfo {
         const GraphicsTexture* pTexture = nullptr;
+    };
+
+    struct TextInfo {
+        vec4i textBox;
     };
 
     struct StringVertex {
@@ -30,6 +35,7 @@ namespace FX {
         void prepare(const Font& font, const std::string& texts);
 
         FontInfo queryFont(const Font& font);
+        TextInfo queryText(const Font& font, const std::string& text);
         StringVertex queryStringVertex(const Font& font, const std::string& texts);
 
     private:

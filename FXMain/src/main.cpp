@@ -1,402 +1,336 @@
-﻿#include <random>
-#include <glm.hpp>
+﻿#include <memory>
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <chrono>
+#include "glad.h"
+#include "glm.hpp"
+#include "basic_bounding.h"
 #include "graphics_window.h"
-#include "graphics_entity.h"
 #include "graphics_scene.h"
 #include "graphics_printer.h"
 #include "graphics_camera.h"
 #include "graphics_font_manager.h"
 #include "surf_text_item.h"
 #include "logic_camera.h"
-#include "basic_vector.h"
+#include "compass.h"
 
-class Box : public FX::GraphicsEntity {
-public:
-    Box(void) : GraphicsEntity(FX::NormalFaceStripID), m_position({ 0.0f, 0.0f, 0.0f, 1.0f }) {}
-    explicit Box(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalFaceStripID),
-        m_position({ x, y, z, radius }) {}
+using namespace FX;
 
-    ~Box(void) = default;
+std::unique_ptr<GraphicsWindow> pMainWindow;
+std::unique_ptr<GraphicsScene> pMainScene;
+std::unique_ptr<CompassScene> pCompassScene;
+std::unordered_map<std::string, std::unique_ptr<GraphicsPrinter>> printerList;
+std::vector<std::unique_ptr<GraphicsEntity>> mainEntityList;
+std::vector<std::unique_ptr<GraphicsEntity>> compassEntityList;
+std::unique_ptr<LogicObserveCamera> pMainCamera;
+std::unique_ptr<GraphicsCamera> pCompassCamera;
+Font compassFont;
+Font mainFont;
+long long sumT = 0;
+int nFrame = 0;
+int fps = 0;
 
-    void generate(void) override
+namespace {
+    std::string readOneFile(const std::string& path)
     {
-        m_vertex = {
-            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
-            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
-            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
-            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
-            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
-            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
-            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
-            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
-            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
-            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
-            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
-            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
-            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
-            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
-            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
-            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
-            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
-            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
-            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
-            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
-            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
-            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
-            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
-            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
-        };
-        m_normal = {
-            1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,
-            -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
-            0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0,
-            0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,
-            0, 0, 1,  0, 0, 1,  0, 0, 1,  0, 0, 1,
-            0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
-        };
-        m_uv = m_vertex;
-        m_index = {
-            0,  1,  2,  3,  FX::RestartMark,
-            4,  5,  6,  7,  FX::RestartMark,
-            8,  9,  10, 11, FX::RestartMark,
-            12, 13, 14, 15, FX::RestartMark,
-            16, 17, 18, 19, FX::RestartMark,
-            20, 21, 22, 23
-        };
-    }
-
-private:
-    FX::vec4f m_position;
-};
-
-class AxisLine : public FX::GraphicsEntity {
-public:
-    explicit AxisLine(const FX::vec3f& dir) : GraphicsEntity(FX::NormalLineID), m_direction(dir) {}
-
-    void generate(void) override
-    {
-        m_vertex = { 0, 0, 0, m_direction.x * 5.0f * m_scale, m_direction.y * 5.0f * m_scale, m_direction.z * 5.0f * m_scale };
-        m_normal = m_vertex;
-        m_uv = m_vertex;
-        m_index = { 0, 1 };
-    }
-
-    void setScale(float scale)
-    {
-        if (!FX::Math::isEqual(m_scale, scale))
+        std::string ret;
+        std::ifstream ifs;
+        ifs.open(path);
+        if (ifs.is_open() == false)
         {
-            m_scale = scale;
-            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-            setDirty(FX::MatrixDirty);
+            return ret;
+        }
+
+        std::stringstream buffer;
+        buffer << ifs.rdbuf();
+        auto source = buffer.str();
+        if (source.empty())
+        {
+            return ret;
+        }
+
+        int i = 0;
+        for (; i < source.length(); i++)
+        {
+            if (std::isprint(static_cast<unsigned char>(source[i])))
+            {
+                break;
+            }
+        }
+
+        if (i < source.length())
+        {
+            ret = source.substr(i);
+        }
+        return ret;
+    }
+
+    bool checkFileAvailable(void)
+    {
+        return true;
+    }
+
+    bool buildScene(void)
+    {
+        auto vert = readOneFile("./shader/normal_world.vert");
+        auto frag = readOneFile("./shader/normal_world.frag");
+        printerList["world/pure"].reset(new GraphicsNormalPrinter);
+        printerList["world/pure"]->addShader(GPUItemType::kVtxShader, vert);
+        printerList["world/pure"]->addShader(GPUItemType::kFrgShader, frag);
+        frag = readOneFile("./shader/normal_world_phong.frag");
+        printerList["world/phong"].reset(new GraphicsNormalPrinter);
+        printerList["world/phong"]->addShader(GPUItemType::kVtxShader, vert);
+        printerList["world/phong"]->addShader(GPUItemType::kFrgShader, frag);
+        vert = readOneFile("./shader/normal_screen_text.vert");
+        frag = readOneFile("./shader/normal_screen_text.frag");
+        printerList["screen/text"].reset(new GraphicsNormalPrinter);
+        printerList["screen/text"]->addShader(GPUItemType::kVtxShader, vert);
+        printerList["screen/text"]->addShader(GPUItemType::kFrgShader, frag);
+
+        pCompassScene->addPrinter(printerList["world/pure"].get(), NormalFaceStripID);
+        pCompassScene->addPrinter(printerList["world/pure"].get(), NormalLineStripID);
+        pCompassScene->addPrinter(printerList["world/pure"].get(), NormalFaceID);
+        pCompassScene->addPrinter(printerList["world/pure"].get(), NormalLineID);
+        pCompassScene->addPrinter(printerList["screen/text"].get(), ScreenTextID);
+        pMainScene->addPrinter(printerList["screen/text"].get(), ScreenTextID);
+
+        pMainCamera.reset(new LogicObserveCamera(pMainWindow.get()));
+        pMainScene->bindCamera(&pMainCamera->get());
+
+        pCompassCamera.reset(new GraphicsCamera);
+        pCompassScene->bindCamera(pCompassCamera.get());
+        pCompassCamera->setField(-2.5f, 2.5f, -2.5f, 2.5f);
+        pCompassCamera->setNearFar(0, 10);
+        return true;
+    }
+
+    bool addCompassEntity(void)
+    {
+        compassEntityList.emplace_back(new CompassPlane);
+        compassEntityList.emplace_back(new CompassPlaneEdge);
+        compassEntityList.emplace_back(new CompassArrow(glm::mat4(1.0f)));
+        compassEntityList.emplace_back(new CompassArrow(glm::rotate(glm::mat4(1.0f), static_cast<float>(Math::PI / 2), glm::vec3(0, 0, 1))));
+        compassEntityList.emplace_back(new CompassArrow(glm::rotate(glm::mat4(1.0f), static_cast<float>(Math::PI / 2), glm::vec3(0, -1, 0))));
+        compassEntityList.emplace_back(new CompassArrow(glm::rotate(glm::mat4(1.0f), static_cast<float>(-Math::PI / 2), glm::vec3(0, 0, 1))));
+        compassEntityList.emplace_back(new CompassArrow(glm::rotate(glm::mat4(1.0f), static_cast<float>(-Math::PI / 2), glm::vec3(0, -1, 0))));
+        compassEntityList.emplace_back(new CompassArrow(glm::rotate(glm::mat4(1.0f), static_cast<float>(Math::PI), glm::vec3(0, 1, 0))));
+        compassEntityList.emplace_back(new CompassArrowLine(glm::mat4(1.0f)));
+        compassEntityList.emplace_back(new CompassArrowLine(glm::rotate(glm::mat4(1.0f), static_cast<float>(Math::PI / 2), glm::vec3(0, 0, 1))));
+        compassEntityList.emplace_back(new CompassArrowLine(glm::rotate(glm::mat4(1.0f), static_cast<float>(Math::PI / 2), glm::vec3(0, -1, 0))));
+
+        auto name = GraphicsFontManager::instance().loadFontFile("./font/BlueakaBeta-DB-GBK.ttf");
+        compassFont = { name, 16 };
+        compassEntityList.emplace_back(new SurfTextEntity(compassFont, "前", { 0, 0 }));
+        compassEntityList.emplace_back(new SurfTextEntity(compassFont, "上", { 0, 0 }));
+        compassEntityList.emplace_back(new SurfTextEntity(compassFont, "右", { 0, 0 }));
+
+        for (auto& ptr : compassEntityList)
+        {
+            pCompassScene->addEntity(ptr.get());
+        }
+        return true;
+    }
+
+    bool addMainEntity(void)
+    {
+        auto pNewText = new SurfTextEntity(compassFont, "鼠标滚轮缩放，中键平移，右键旋转", { 1280 - 270, 720 - 40 });
+        auto profile = pNewText->profile();
+        profile.color = { 200, 100, 0, 255 };
+        pNewText->setProfile(profile);
+        mainEntityList.emplace_back(pNewText);
+        pNewText = new SurfTextEntity(compassFont, "目前平移和旋转的手感比较怪，属正常现象", { 1280 - 245, 720 - 20 });
+        profile.font.size = 12;
+        profile.color = { 200, 200, 200, 255 };
+        pNewText->setProfile(profile);
+        mainEntityList.emplace_back(pNewText);
+
+        auto name = GraphicsFontManager::instance().loadFontFile("./font/HarmonyOS_Sans_SC_Regular.ttf");
+        mainFont = { name, 16 };
+
+        pNewText = new SurfTextEntity(mainFont, "", { 5, 5 });
+        profile = pNewText->profile();
+        profile.color = { 200, 200, 200, 255 };
+        pNewText->setProfile(profile);
+        mainEntityList.emplace_back(pNewText);
+        pNewText = new SurfTextEntity(mainFont, "", { 5, 720 - 70 });
+        pNewText->setProfile(profile);
+        mainEntityList.emplace_back(pNewText);
+
+        for (auto& ptr : mainEntityList)
+        {
+            pMainScene->addEntity(ptr.get());
+        }
+        return true;
+    }
+
+    bool init(void)
+    {
+        if (checkFileAvailable() == false)
+        {
+            return false;
+        }
+        pMainWindow.reset(new GraphicsWindow(1280, 720));
+        gladLoadGL();
+        pMainScene.reset(new GraphicsScene);
+        pCompassScene.reset(new CompassScene);
+        if (buildScene() == false)
+        {
+            return false;
+        }
+        if (addCompassEntity() == false)
+        {
+            return false;
+        }
+        if (addMainEntity() == false)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    void uninit(void)
+    {
+        pCompassCamera.reset(nullptr);
+        pMainCamera.reset(nullptr);
+        pCompassScene.reset(nullptr);
+        pMainScene.reset(nullptr);
+        pMainWindow.reset(nullptr);
+        for (auto& pair : printerList)
+        {
+            pair.second.reset(nullptr);
+        }
+        for (auto& ptr : compassEntityList)
+        {
+            ptr.reset(nullptr);
+        }
+        for (auto& ptr : mainEntityList)
+        {
+            ptr.reset(nullptr);
         }
     }
 
-private:
-    FX::vec3f m_direction;
-    float m_scale = 1.0f;
-};
-
-class AxisCone : public FX::GraphicsEntity {
-public:
-    explicit AxisCone(const FX::vec3f& dir) : GraphicsEntity(FX::NormalFaceID), m_direction(dir) {}
-
-    void generate(void) override
+    void updateCompassText(void)
     {
-        const float height = 1.0f;
-        const float radius = 0.3f;
-        const int   segments = 16;
+        auto n = compassEntityList.size();
+        auto& vpMatrix = pCompassCamera->vPMatrix();
+        glm::vec4 clip = vpMatrix * glm::vec4(1.9f, 0, 0, 1);
+        glm::vec3 ndc = glm::vec3(clip) / clip.w;
+        int x = static_cast<int>((ndc.x + 1) / 2 * COMPASS_SIZE);
+        int y = static_cast<int>((1 - ndc.y) / 2 * COMPASS_SIZE);
+        auto box = GraphicsFontManager::instance().queryText(compassFont, static_cast<SurfTextEntity*>(compassEntityList[n - 3].get())->text()).textBox;
+        vec2i center = { (box.x + box.y) / 2, (box.z + box.w) / 2 };
+        center = { x - center.x, y - center.y };
+        static_cast<SurfTextEntity*>(compassEntityList[n - 3].get())->setPosition(center);
+        static_cast<SurfTextEntity*>(compassEntityList[n - 3].get())->setDepth(ndc.z);
+        clip = vpMatrix * glm::vec4(0, 1.9f, 0, 1);
+        ndc = glm::vec3(clip) / clip.w;
+        x = static_cast<int>((ndc.x + 1) / 2 * COMPASS_SIZE);
+        y = static_cast<int>((1 - ndc.y) / 2 * COMPASS_SIZE);
+        box = GraphicsFontManager::instance().queryText(compassFont, static_cast<SurfTextEntity*>(compassEntityList[n - 2].get())->text()).textBox;
+        center = { (box.x + box.y) / 2, (box.z + box.w) / 2 };
+        center = { x - center.x, y - center.y };
+        static_cast<SurfTextEntity*>(compassEntityList[n - 2].get())->setPosition(center);
+        static_cast<SurfTextEntity*>(compassEntityList[n - 2].get())->setDepth(ndc.z);
+        clip = vpMatrix * glm::vec4(0, 0, 1.9f, 1);
+        ndc = glm::vec3(clip) / clip.w;
+        x = static_cast<int>((ndc.x + 1) / 2 * COMPASS_SIZE);
+        y = static_cast<int>((1 - ndc.y) / 2 * COMPASS_SIZE);
+        box = GraphicsFontManager::instance().queryText(compassFont, static_cast<SurfTextEntity*>(compassEntityList[n - 1].get())->text()).textBox;
+        center = { (box.x + box.y) / 2, (box.z + box.w) / 2 };
+        center = { x - center.x, y - center.y };
+        static_cast<SurfTextEntity*>(compassEntityList[n - 1].get())->setPosition(center);
+        static_cast<SurfTextEntity*>(compassEntityList[n - 1].get())->setDepth(ndc.z);
+    }
 
-        float h = height * m_scale;
-        float r = radius * m_scale;
+    void updateMainText(void)
+    {
+        auto& interactor = pMainWindow->interactor();
+        auto size = pMainWindow->size();
+        auto flag = interactor.enventFlag();
+        if (flag & WindowResizeFlag)
+        {
+            static_cast<SurfTextEntity*>(mainEntityList[0].get())->setPosition({ size.x - 270, size.y - 40 });
+            static_cast<SurfTextEntity*>(mainEntityList[1].get())->setPosition({ size.x - 245, size.y - 20 });
+            static_cast<SurfTextEntity*>(mainEntityList[3].get())->setPosition({ 5, size.y - 70 });
+        }
 
-        glm::vec3 d = glm::normalize(glm::vec3(m_direction.x, m_direction.y, m_direction.z));
-        glm::vec3 tip = d * 5.0f * m_scale;
-        glm::vec3 base_center = tip - d * h;
-
-        glm::vec3 u;
-        if (std::abs(d.x) < 0.9f)
-            u = glm::normalize(glm::cross(d, glm::vec3(1.0f, 0.0f, 0.0f)));
+        std::string str;
+        if (sumT >= 5e5)
+        {
+            fps = static_cast<int>(1e6f * nFrame / sumT + 0.5f);
+        }
+        str = "FPS: " + std::to_string(fps) + "\n";
+        str += "窗口大小: [" + std::to_string(size.x) + ", " + std::to_string(size.y) + "]\n";
+        if (interactor.isCursorIn())
+        {
+            auto pos = interactor.cursorPos();
+            str += "鼠标位置: (" + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ")\n";
+        }
         else
-            u = glm::normalize(glm::cross(d, glm::vec3(0.0f, 1.0f, 0.0f)));
-        glm::vec3 v = glm::normalize(glm::cross(d, u));
-
-        std::vector<glm::vec3> base_pts(segments);
-        std::vector<glm::vec3> side_normals(segments);
-        for (int i = 0; i < segments; ++i) {
-            float angle = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(segments);
-            base_pts[i] = base_center + r * (std::cos(angle) * u + std::sin(angle) * v);
-            glm::vec3 edge_dir = glm::normalize(base_pts[i] - tip);
-            glm::vec3 tangent  = glm::cross(d, glm::normalize(base_pts[i] - base_center));
-            side_normals[i] = glm::normalize(glm::cross(edge_dir, tangent));
-        }
-
-        m_vertex.clear();
-        m_normal.clear();
-        m_uv.clear();
-        m_index.clear();
-
-        unsigned int idx = 0;
-
-        for (int i = 0; i < segments; ++i) {
-            int j = (i + 1) % segments;
-            glm::vec3 tip_n = glm::normalize(side_normals[i] + side_normals[j]);
-
-            m_vertex.insert(m_vertex.end(), {tip.x, tip.y, tip.z});
-            m_normal.insert(m_normal.end(), {tip_n.x, tip_n.y, tip_n.z});
-
-            m_vertex.insert(m_vertex.end(), {base_pts[i].x, base_pts[i].y, base_pts[i].z});
-            m_normal.insert(m_normal.end(), {side_normals[i].x, side_normals[i].y, side_normals[i].z});
-
-            m_vertex.insert(m_vertex.end(), {base_pts[j].x, base_pts[j].y, base_pts[j].z});
-            m_normal.insert(m_normal.end(), {side_normals[j].x, side_normals[j].y, side_normals[j].z});
-
-            m_index.insert(m_index.end(), {idx, idx + 1, idx + 2});
-            idx += 3;
-        }
-
-        glm::vec3 base_normal = -d;
-        for (int i = 0; i < segments; ++i) {
-            int j = (i + 1) % segments;
-
-            m_vertex.insert(m_vertex.end(), {base_center.x, base_center.y, base_center.z});
-            m_normal.insert(m_normal.end(), {base_normal.x, base_normal.y, base_normal.z});
-
-            m_vertex.insert(m_vertex.end(), {base_pts[j].x, base_pts[j].y, base_pts[j].z});
-            m_normal.insert(m_normal.end(), {base_normal.x, base_normal.y, base_normal.z});
-
-            m_vertex.insert(m_vertex.end(), {base_pts[i].x, base_pts[i].y, base_pts[i].z});
-            m_normal.insert(m_normal.end(), {base_normal.x, base_normal.y, base_normal.z});
-
-            m_index.insert(m_index.end(), {idx, idx + 1, idx + 2});
-            idx += 3;
-        }
-
-        m_uv = m_vertex;
-    }
-
-    void setScale(float scale)
-    {
-        if (!FX::Math::isEqual(m_scale, scale))
         {
-            m_scale = scale;
-            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-            setDirty(FX::MatrixDirty);
+            str += "\n";
         }
+        if (flag & FX::MouseDragFlag)
+        {
+            str += "正在拖拽\n";
+        }
+        static_cast<SurfTextEntity*>(mainEntityList[2].get())->setText(str);
+
+        auto& cam = pMainCamera->get();
+        auto& position = cam.position();
+        auto& lookAt = cam.lookAt();
+        glm::vec3 dir = glm::vec3(position.x - lookAt.x, position.y - lookAt.y, position.z - lookAt.z);
+        auto dis = glm::length(dir);
+        dir = glm::normalize(dir);
+
+        str = "观察中心: (" + std::to_string(lookAt.x) + ", " + std::to_string(lookAt.y) + ", " + std::to_string(lookAt.z) + ")\n";
+        str += "相机方向: (" + std::to_string(dir.x) + ", " + std::to_string(dir.y) + ", " + std::to_string(dir.z) + ")\n";
+        str += "相机距离: " + std::to_string(dis) + "\n";
+        str += "缩放比例: " + std::to_string(pMainCamera->scale());
+        static_cast<SurfTextEntity*>(mainEntityList[3].get())->setText(str);
     }
-
-private:
-    FX::vec3f m_direction;
-    float m_scale = 1.0f;
-};
-
-std::random_device rDevice;
-std::mt19937 rEngine(rDevice());
-std::uniform_int_distribution<> range(0, 7);
+}
 
 int main(void)
 {
-    auto name1 = FX::GraphicsFontManager::instance().loadFontFile("./font/HarmonyOS_Sans_SC_Regular.ttf");
-    auto name2 = FX::GraphicsFontManager::instance().loadFontFile("./font/AlibabaPuHuiTi-3-55-Regular.ttf");
-
-    FX::GraphicsWindow window1(800, 600);
-    window1.use();
-    window1.frame();
-
-    FX::GraphicsWindow window2(800, 600);
-    window2.use();
-    window2.frame();
-
-    Box* boxs[8] = {};
-    for (int i = 0; i < 8; i++)
+    if (init() == false)
     {
-        boxs[i] = new Box(5 * std::sin(2 * 3.1415926f * i / 8), 5 * std::cos(2 * 3.1415926f * i / 8), 0.0f, 1.0f);
+        uninit();
+        return 1;
     }
 
-    FX::GraphicsNormalPrinter printer1;
-    std::ifstream ifs;
-    ifs.open("./shader/normal_world.vert");
-    printer1.addShader(FX::GPUItemType::kVtxShader, ifs);
-    ifs.close();
-    ifs.open("./shader/normal_world.frag");
-    printer1.addShader(FX::GPUItemType::kFrgShader, ifs);
-    ifs.close();
+    BasicBounding<> bounding;
+    bounding.expand({ 10, 10, 10 });
+    bounding.expand({ -10, -10, -10 });
+    pMainCamera->observe(bounding);
 
-    FX::GraphicsNormalPrinter printer2;
-    ifs.open("./shader/normal_world.vert");
-    printer2.addShader(FX::GPUItemType::kVtxShader, ifs);
-    ifs.close();
-    ifs.open("./shader/normal_world_phong.frag");
-    printer2.addShader(FX::GPUItemType::kFrgShader, ifs);
-    ifs.close();
-
-    FX::GraphicsNormalPrinter printer3;
-    ifs.open("./shader/normal_screen_text.vert");
-    printer3.addShader(FX::GPUItemType::kVtxShader, ifs);
-    ifs.close();
-    ifs.open("./shader/normal_screen_text.frag");
-    printer3.addShader(FX::GPUItemType::kFrgShader, ifs);
-    ifs.close();
-
-    FX::GraphicsScene scene;
-    scene.addPrinter(&printer2, FX::NormalFaceStripID);
-    scene.addPrinter(&printer1, FX::NormalFaceID);
-    scene.addPrinter(&printer1, FX::NormalLineID);
-    scene.addPrinter(&printer3, FX::ScreenTextID);
-    for (int i = 0; i < 8; i++)
-    {
-        scene.addEntity(boxs[i]);
-    }
-
-    AxisLine axisX({ 1, 0, 0 });
-    AxisCone coneX({ 1, 0, 0 });
-    AxisLine axisY({ 0, 1, 0 });
-    AxisCone coneY({ 0, 1, 0 });
-    AxisLine axisZ({ 0, 0, 1 });
-    AxisCone coneZ({ 0, 0, 1 });
-
-    scene.addEntity(&axisX);
-    scene.addEntity(&coneX);
-    scene.addEntity(&axisY);
-    scene.addEntity(&coneY);
-    scene.addEntity(&axisZ);
-    scene.addEntity(&coneZ);
-
-    FX::LogicObserveCamera camera(&window1);
-    scene.bindCamera(&camera.get());
-
-    FX::BasicBounding<> box;
-    box.expand(FX::vec3f{ 6, 6, 6 });
-    box.expand(FX::vec3f{ -6, -6, -6 });
-    camera.observe(box);
-
-    FX::SurfTextEntity text1;
-    {
-        auto profile = text1.profile();
-        profile.font = { name1, 16 };
-        profile.color = { 0, 200, 255, 255 };
-        text1.setProfile(profile);
-        scene.addEntity(&text1);
-        text1.setPosition({ 5, 5 });
-    }
-
-    FX::SurfTextEntity text2;
-    {
-        auto profile = text2.profile();
-        profile.font = { name1, 12 };
-        profile.color = { 200, 200, 200, 255 };
-        text2.setProfile(profile);
-        scene.addEntity(&text2);
-        text2.setPosition({ 5, 545 });
-    }
-
-    int i = 0;
-    int n = 0;
-    long long sumT = 0;
-    int frames = 0;
-    int fps = 0;
+    pMainWindow->use();
     auto last = std::chrono::high_resolution_clock::now();
-    while (!window1.shouldClose() && !window2.shouldClose())
+    while (!pMainWindow->shouldClose())
     {
         auto now = std::chrono::high_resolution_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::microseconds>(now - last).count();
         last = now;
         sumT += dur;
 
-        auto& interactor = window1.interactor();
-        auto flag = interactor.enventFlag();
+        pMainCamera->process();
+        syncCamera(pMainCamera.get(), pCompassCamera.get());
+        updateCompassText();
+        updateMainText();
 
-        {
-            if (sumT >= 5e5)
-            {
-                fps = static_cast<int>(1e6f * frames / sumT + 0.5f);
-            }
-
-            std::string str = "FPS: " + std::to_string(fps) + "\n";
-
-            auto size = window1.size();
-            str += "窗口大小: [" + std::to_string(size.x) + ", " + std::to_string(size.y) + "]\n";
-
-            if (interactor.isCursorIn())
-            {
-                auto pos = interactor.cursorPos();
-                str += "鼠标位置: (" + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ")\n";
-            }
-            else
-            {
-                str += "\n";
-            }
-
-            if (flag & FX::MouseDragFlag)
-            {
-                str += "正在拖拽\n";
-            }
-
-            text1.setText(str);
-        }
-
-        camera.process();
-        axisX.setScale(camera.scale());
-        coneX.setScale(camera.scale());
-        axisY.setScale(camera.scale());
-        coneY.setScale(camera.scale());
-        axisZ.setScale(camera.scale());
-        coneZ.setScale(camera.scale());
-
-        {
-            auto& cam = camera.get();
-            auto& position = cam.position();
-            auto& lookAt = cam.lookAt();
-            glm::vec3 dir = glm::vec3(position.x - lookAt.x, position.y - lookAt.y, position.z - lookAt.z);
-            auto dis = glm::length(dir);
-            dir = glm::normalize(dir);
-
-            std::string str = "观察中心: (" + std::to_string(lookAt.x) + ", " + std::to_string(lookAt.y) + ", " + std::to_string(lookAt.z) + ")\n";
-            str += "相机方向: (" + std::to_string(dir.x) + ", " + std::to_string(dir.y) + ", " + std::to_string(dir.z) + ")\n";
-            str += "相机距离: " + std::to_string(dis) + "\n";
-            str += "缩放比例: " + std::to_string(camera.scale());
-
-            text2.setText(str);
-
-            if (flag & FX::WindowResizeFlag)
-            {
-                auto size = window1.size();
-                text2.setPosition({ 5, size.y - 55 });
-            }
-        }
-
-        if (n % 10 == 0)
-        {
-            FX::EntityProfile profile = boxs[i]->profile();
-            profile.visible = true;
-            boxs[i]->setProfile(profile);
-            i = range(rEngine);
-            profile = boxs[i]->profile();
-            profile.visible = false;
-            boxs[i]->setProfile(profile);
-        }
-
-        window1.use();
-        scene.draw();
-        window1.frame();
-
-        if (n % 60 == 0)
-        {
-            window2.use();
-            scene.draw();
-            window2.frame();
-        }
+        pMainScene->draw();
+        pCompassScene->draw();
+        pMainWindow->frame();
 
         if (sumT >= 5e5)
         {
-            sumT = frames = 0;
+            sumT = nFrame = 0;
         }
-
-        n++;
-        frames++;
+        nFrame++;
     }
 
-    for (int i = 0; i < 8; i++)
-    {
-        delete boxs[i];
-    }
+    uninit();
 }
