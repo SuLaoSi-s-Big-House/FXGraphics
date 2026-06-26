@@ -1,13 +1,12 @@
 ﻿#include "compass.h"
 
 #include "glad.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 #include "graphics_window.h"
 #include "graphics_camera.h"
 
 namespace {
-
-    const vec4uc CREAM_COLOR = { 255, 238, 210, 255 };
-    const vec4uc CHEESE_COLOR = { 183, 154, 107, 255 };
 
     struct NormalGlobalInfo {
         glm::mat4 vMatrix = glm::mat4(1.0f);
@@ -165,23 +164,22 @@ void CompassArrow::generate()
     }
 }
 
-CompassArrowLine::CompassArrowLine(const glm::mat4& matrix) : GraphicsEntity(NormalFaceStripID)
+CompassArrowLine::CompassArrowLine(const glm::mat4& matrix, float radius, vec4uc color) : GraphicsEntity(NormalFaceStripID)
 {
-    m_profile.matrix = matrix;
-    m_profile.color = CHEESE_COLOR;
+    m_matrix = matrix;
+    m_profile.color = color;
+    m_radius = radius;
 }
 
 void CompassArrowLine::generate()
 {
-    constexpr float radius = 0.03f;
-
     m_vertex.resize(6 * 3 * 2);
     for (int i = 0; i < 6; i++)
     {
         m_vertex[i * 3] = 0;
         m_vertex[i * 3 + 18] = 1;
-        m_vertex[i * 3 + 1] = m_vertex[i * 3 + 19] = radius * static_cast<float>(std::sin((i / 6.0f) * 2 * Math::PI));
-        m_vertex[i * 3 + 2] = m_vertex[i * 3 + 20] = radius * static_cast<float>(std::cos((i / 6.0f) * 2 * Math::PI));
+        m_vertex[i * 3 + 1] = m_vertex[i * 3 + 19] = m_radius * static_cast<float>(std::sin((i / 6.0f) * 2 * Math::PI));
+        m_vertex[i * 3 + 2] = m_vertex[i * 3 + 20] = m_radius * static_cast<float>(std::cos((i / 6.0f) * 2 * Math::PI));
     }
     m_normal = m_uv = m_vertex;
 
@@ -196,5 +194,103 @@ void CompassArrowLine::generate()
     {
         m_index[i * 2 + 14] = i % 6;
         m_index[i * 2 + 15] = i % 6 + 6;
+    }
+}
+
+void CompassArrowLine::setScale(float scale)
+{
+    m_scale = scale;
+    setDirty(MatrixDirty);
+}
+
+const EntityProfile& CompassArrowLine::profile()
+{
+    m_profile.matrix = m_matrix * glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
+    return m_profile;
+}
+
+ObjEntity::ObjEntity(const std::string& path) : GraphicsEntity(NormalFaceID)
+{
+    if (path.empty())
+    {
+        return;
+    }
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn;
+    std::string err;
+
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str(), nullptr, true);
+    if (!ret)
+    {
+        return;
+    }
+
+    m_vertex.reserve(1000);
+    m_normal.reserve(1000);
+    m_uv.reserve(1000);
+    for (const auto& shape : shapes)
+    {
+        size_t indexOffset = 0;
+        for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++)
+        {
+            int fv = shape.mesh.num_face_vertices[f];
+            if (fv < 3)
+            {
+                indexOffset += fv;
+                continue;
+            }
+
+            // fan triangulation: (v0, v1, v2), (v0, v2, v3), ...
+            for (int v = 0; v < fv - 2; v++)
+            {
+                int triIndex[3] = { 0, v + 1, v + 2 };
+                for (int k = 0; k < 3; k++)
+                {
+                    const auto& idx = shape.mesh.indices[indexOffset + triIndex[k]];
+
+                    m_vertex.push_back(attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 0]);
+                    m_vertex.push_back(attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 1]);
+                    m_vertex.push_back(attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 2]);
+
+                    if (idx.normal_index >= 0)
+                    {
+                        m_normal.push_back(attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 0]);
+                        m_normal.push_back(attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 1]);
+                        m_normal.push_back(attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 2]);
+                    }
+                    else
+                    {
+                        m_normal.push_back(0.0f);
+                        m_normal.push_back(0.0f);
+                        m_normal.push_back(0.0f);
+                    }
+
+                    if (idx.texcoord_index >= 0)
+                    {
+                        m_uv.push_back(attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 0]);
+                        m_uv.push_back(attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 1]);
+                        m_uv.push_back(0.0f);
+                    }
+                    else
+                    {
+                        m_uv.push_back(0.0f);
+                        m_uv.push_back(0.0f);
+                        m_uv.push_back(0.0f);
+                    }
+                }
+            }
+
+            indexOffset += fv;
+        }
+    }
+
+    size_t vertexCount = m_vertex.size() / 3;
+    m_index.resize(vertexCount);
+    for (size_t i = 0; i < vertexCount; i++)
+    {
+        m_index[i] = static_cast<unsigned int>(i);
     }
 }

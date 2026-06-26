@@ -449,14 +449,14 @@ namespace FX {
 
         if (m_ortho)
         {
-            m_camera.setNearFar(0.1f, 1e4f);
-            //m_camera.setNearFar(0.1f, far - near + 0.1f);
+            //m_camera.setNearFar(0.1f, 1e4f);
+            m_camera.setNearFar(0.1f, far - near + 0.1f);
         }
         else
         {
-            //auto distance = glm::distance(lookAt, position);
-            m_camera.setNearFar(0.1f, 1e4f);
-            //m_camera.setNearFar(std::max(distance + near, 0.1f), std::min(distance + far, 1e6f));
+            auto distance = glm::distance(lookAt, position);
+            //m_camera.setNearFar(0.1f, 1e4f);
+            m_camera.setNearFar(std::max(distance + near, 0.1f), std::min(distance + far, 1e6f));
         }
     }
 

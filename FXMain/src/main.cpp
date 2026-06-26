@@ -16,6 +16,7 @@
 #include "surf_text_item.h"
 #include "logic_camera.h"
 #include "compass.h"
+#include <Windows.h>
 
 using namespace FX;
 
@@ -32,9 +33,11 @@ Font mainFont;
 long long sumT = 0;
 int nFrame = 0;
 int fps = 0;
+BasicBounding<> bounding;
+BasicBounding<> allBounding;
 
 namespace {
-    std::string readOneFile(const std::string& path)
+    inline std::string readOneFile(const std::string& path)
     {
         std::string ret;
         std::ifstream ifs;
@@ -68,12 +71,36 @@ namespace {
         return ret;
     }
 
-    bool checkFileAvailable(void)
+    inline bool checkFileAvailable(void)
     {
+        std::vector<std::string> files = {
+            "./shader/normal_world.vert",
+            "./shader/normal_world.frag",
+            "./shader/normal_world_phong.frag",
+            "./shader/normal_screen_text.vert",
+            "./shader/normal_screen_text.frag",
+            "./font/BlueakaBeta-DB-GBK.ttf",
+            "./font/HarmonyOS_Sans_SC_Regular.ttf",
+            "./model/car.obj"
+        };
+
+        std::ifstream ifs;
+        for (auto& str : files)
+        {
+            ifs.open(str);
+            if (ifs.good() == false)
+            {
+                ifs.close();
+                MessageBoxW(NULL, L"    文件丢失，请检查软件完整性  ", L"错误", MB_OK | MB_ICONERROR);
+                return false;
+            }
+            ifs.close();
+        }
+
         return true;
     }
 
-    bool buildScene(void)
+    inline bool buildScene(void)
     {
         auto vert = readOneFile("./shader/normal_world.vert");
         auto frag = readOneFile("./shader/normal_world.frag");
@@ -96,6 +123,8 @@ namespace {
         pCompassScene->addPrinter(printerList["world/pure"].get(), NormalLineID);
         pCompassScene->addPrinter(printerList["screen/text"].get(), ScreenTextID);
         pMainScene->addPrinter(printerList["screen/text"].get(), ScreenTextID);
+        pMainScene->addPrinter(printerList["world/pure"].get(), NormalFaceStripID);
+        pMainScene->addPrinter(printerList["world/phong"].get(), NormalFaceID);
 
         pMainCamera.reset(new LogicObserveCamera(pMainWindow.get()));
         pMainScene->bindCamera(&pMainCamera->get());
@@ -107,7 +136,7 @@ namespace {
         return true;
     }
 
-    bool addCompassEntity(void)
+    inline bool addCompassEntity(void)
     {
         compassEntityList.emplace_back(new CompassPlane);
         compassEntityList.emplace_back(new CompassPlaneEdge);
@@ -123,9 +152,9 @@ namespace {
 
         auto name = GraphicsFontManager::instance().loadFontFile("./font/BlueakaBeta-DB-GBK.ttf");
         compassFont = { name, 16 };
-        compassEntityList.emplace_back(new SurfTextEntity(compassFont, "前", { 0, 0 }));
-        compassEntityList.emplace_back(new SurfTextEntity(compassFont, "上", { 0, 0 }));
         compassEntityList.emplace_back(new SurfTextEntity(compassFont, "右", { 0, 0 }));
+        compassEntityList.emplace_back(new SurfTextEntity(compassFont, "上", { 0, 0 }));
+        compassEntityList.emplace_back(new SurfTextEntity(compassFont, "前", { 0, 0 }));
 
         for (auto& ptr : compassEntityList)
         {
@@ -134,14 +163,14 @@ namespace {
         return true;
     }
 
-    bool addMainEntity(void)
+    inline bool addMainEntity(void)
     {
         auto pNewText = new SurfTextEntity(compassFont, "鼠标滚轮缩放，中键平移，右键旋转", { 1280 - 270, 720 - 40 });
         auto profile = pNewText->profile();
         profile.color = { 200, 100, 0, 255 };
         pNewText->setProfile(profile);
         mainEntityList.emplace_back(pNewText);
-        pNewText = new SurfTextEntity(compassFont, "目前平移和旋转的手感比较怪，属正常现象", { 1280 - 245, 720 - 20 });
+        pNewText = new SurfTextEntity(compassFont, "目前平移和旋转的手感比较怪，属正常现象", { 1280 - 242, 720 - 20 });
         profile.font.size = 12;
         profile.color = { 200, 200, 200, 255 };
         pNewText->setProfile(profile);
@@ -159,6 +188,12 @@ namespace {
         pNewText->setProfile(profile);
         mainEntityList.emplace_back(pNewText);
 
+        mainEntityList.emplace_back(new ObjEntity("./model/car.obj"));
+
+        mainEntityList.emplace_back(new CompassArrowLine(glm::mat4(1.0f), 0.04f, { 255, 0, 0, 255 }));
+        mainEntityList.emplace_back(new CompassArrowLine(glm::rotate(glm::mat4(1.0f), static_cast<float>(Math::PI / 2), glm::vec3(0, 0, 1)), 0.04f, { 0, 255, 0, 255 }));
+        mainEntityList.emplace_back(new CompassArrowLine(glm::rotate(glm::mat4(1.0f), static_cast<float>(Math::PI / 2), glm::vec3(0, -1, 0)), 0.04f, { 0, 0, 255, 255 }));
+
         for (auto& ptr : mainEntityList)
         {
             pMainScene->addEntity(ptr.get());
@@ -166,7 +201,7 @@ namespace {
         return true;
     }
 
-    bool init(void)
+    inline bool init(void)
     {
         if (checkFileAvailable() == false)
         {
@@ -176,6 +211,8 @@ namespace {
         gladLoadGL();
         pMainScene.reset(new GraphicsScene);
         pCompassScene.reset(new CompassScene);
+        pMainScene->draw();
+        pMainWindow->frame();
         if (buildScene() == false)
         {
             return false;
@@ -191,7 +228,7 @@ namespace {
         return true;
     }
 
-    void uninit(void)
+    inline void uninit(void)
     {
         pCompassCamera.reset(nullptr);
         pMainCamera.reset(nullptr);
@@ -212,7 +249,7 @@ namespace {
         }
     }
 
-    void updateCompassText(void)
+    inline void updateCompassText(void)
     {
         auto n = compassEntityList.size();
         auto& vpMatrix = pCompassCamera->vPMatrix();
@@ -245,7 +282,7 @@ namespace {
         static_cast<SurfTextEntity*>(compassEntityList[n - 1].get())->setDepth(ndc.z);
     }
 
-    void updateMainText(void)
+    inline void updateMainText(void)
     {
         auto& interactor = pMainWindow->interactor();
         auto size = pMainWindow->size();
@@ -253,7 +290,7 @@ namespace {
         if (flag & WindowResizeFlag)
         {
             static_cast<SurfTextEntity*>(mainEntityList[0].get())->setPosition({ size.x - 270, size.y - 40 });
-            static_cast<SurfTextEntity*>(mainEntityList[1].get())->setPosition({ size.x - 245, size.y - 20 });
+            static_cast<SurfTextEntity*>(mainEntityList[1].get())->setPosition({ size.x - 242, size.y - 20 });
             static_cast<SurfTextEntity*>(mainEntityList[3].get())->setPosition({ 5, size.y - 70 });
         }
 
@@ -291,6 +328,16 @@ namespace {
         str += "相机距离: " + std::to_string(dis) + "\n";
         str += "缩放比例: " + std::to_string(pMainCamera->scale());
         static_cast<SurfTextEntity*>(mainEntityList[3].get())->setText(str);
+
+        auto scale = pMainCamera->scale();
+        static_cast<CompassArrowLine*>(mainEntityList[mainEntityList.size() - 1].get())->setScale(25 * scale);
+        static_cast<CompassArrowLine*>(mainEntityList[mainEntityList.size() - 2].get())->setScale(25 * scale);
+        static_cast<CompassArrowLine*>(mainEntityList[mainEntityList.size() - 3].get())->setScale(25 * scale);
+
+        allBounding = bounding;
+        allBounding.expand({ 25 * scale + 0.1f, 0, 0 });
+        allBounding.expand({ 0, 25 * scale + 0.1f, 0 });
+        allBounding.expand({ 0, 0, 25 * scale + 0.1f });
     }
 }
 
@@ -301,10 +348,12 @@ int main(void)
         uninit();
         return 1;
     }
-
-    BasicBounding<> bounding;
-    bounding.expand({ 10, 10, 10 });
-    bounding.expand({ -10, -10, -10 });
+    
+    auto pCar = mainEntityList[4].get();
+    for (unsigned int i = 0; i < pCar->pointNum(); i++)
+    {
+        bounding.expand({ pCar->vertex()[i * 3] * 1.5f, pCar->vertex()[i * 3 + 1] * 1.5f, pCar->vertex()[i * 3 + 2] * 1.5f });
+    }
     pMainCamera->observe(bounding);
 
     pMainWindow->use();
@@ -320,6 +369,7 @@ int main(void)
         syncCamera(pMainCamera.get(), pCompassCamera.get());
         updateCompassText();
         updateMainText();
+        pMainCamera->fit(allBounding);
 
         pMainScene->draw();
         pCompassScene->draw();
