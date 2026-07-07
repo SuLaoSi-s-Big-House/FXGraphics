@@ -5,6 +5,7 @@
 #include "graphics_buffer.h"
 #include "graphics_entity_manager.h"
 #include "graphics_buffer_manager.h"
+#include "graphics_highlight_manager.h"
 
 namespace FX {
 
@@ -36,6 +37,12 @@ namespace FX {
         void bindCamera(GraphicsCamera* pCamera);
         void unbindCamera(void);
 
+        bool addHighlight(GraphicsEntity* pEntity, HighlightType type);
+        bool removeHighlight(GraphicsEntity* pEntity, HighlightType type);
+        bool removeHighlight(GraphicsEntity* pEntity);
+        bool removeAllHighlight(HighlightType type);
+        bool removeAllHighlight(void);
+
         virtual void draw(void);
 
     protected:
@@ -51,6 +58,7 @@ namespace FX {
 
         GraphicsEntityManager* m_pEntityManager = nullptr;
         GraphicsBufferManager* m_pBufferManager = nullptr;
+        GraphicsHighlightManager* m_pHighlightManager = nullptr;
         PrinterManager m_printerManager;
         GraphicsCamera* m_pCamera = nullptr;
         GraphicsUBO m_globalUbo;

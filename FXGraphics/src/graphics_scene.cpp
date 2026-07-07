@@ -31,6 +31,10 @@ namespace FX {
         {
             m_pBufferManager = new GraphicsBufferManager(this);
         }
+        if (m_pHighlightManager == nullptr)
+        {
+            m_pHighlightManager = new GraphicsHighlightManager(this);
+        }
     }
 
     GraphicsScene::~GraphicsScene()
@@ -42,6 +46,10 @@ namespace FX {
         if (m_pBufferManager != nullptr)
         {
             delete m_pBufferManager;
+        }
+        if (m_pHighlightManager != nullptr)
+        {
+            delete m_pHighlightManager;
         }
         for (auto&& pair : m_printerManager)
         {
@@ -75,6 +83,7 @@ namespace FX {
             return false;
         }
 
+        m_pHighlightManager->removeHighlight(pEntity);
         return m_pEntityManager->removeEntity(pEntity);
     }
 
@@ -186,6 +195,49 @@ namespace FX {
             m_pCamera->eraseScene(this);
             m_pCamera = nullptr;
         }
+    }
+
+    bool GraphicsScene::addHighlight(GraphicsEntity* pEntity, HighlightType type)
+    {
+        if (pEntity == nullptr)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to add highlight to a null pointer entity, discard.");
+            return false;
+        }
+
+        return m_pHighlightManager->addHighlight(pEntity, type);
+    }
+
+    bool GraphicsScene::removeHighlight(GraphicsEntity* pEntity, HighlightType type)
+    {
+        if (pEntity == nullptr)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to remove highlight from a null pointer entity, discard.");
+            return false;
+        }
+
+        return m_pHighlightManager->removeHighlight(pEntity, type);
+    }
+
+    bool GraphicsScene::removeHighlight(GraphicsEntity* pEntity)
+    {
+        if (pEntity == nullptr)
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to remove highlight from a null pointer entity, discard.");
+            return false;
+        }
+
+        return m_pHighlightManager->removeHighlight(pEntity);
+    }
+
+    bool GraphicsScene::removeAllHighlight(HighlightType type)
+    {
+        return m_pHighlightManager->removeAllHighlight(type);
+    }
+
+    bool GraphicsScene::removeAllHighlight()
+    {
+        return m_pHighlightManager->removeAllHighlight();
     }
 
     void GraphicsScene::draw()
