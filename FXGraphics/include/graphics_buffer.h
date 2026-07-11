@@ -9,6 +9,7 @@ namespace FX {
     using BufferSlot = unsigned char;
     constexpr BufferSlot NormalGlobalInfoSlot = 0;
     constexpr BufferSlot NormalProfileSlot = 1;
+    constexpr BufferSlot NormalMaterialSlot = 2;
 
     // 此文件定义了GraphicsBuffer与GraphicsVAO，对OpenGL buffer与OpenGL vao进行了封装。
 

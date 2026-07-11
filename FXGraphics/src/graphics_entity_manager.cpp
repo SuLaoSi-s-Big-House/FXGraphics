@@ -6,7 +6,7 @@
 namespace FX {
 
     namespace {
-        constexpr unsigned int MAX_LIST_ENTITY_NUM = 1000u;
+        constexpr unsigned int MAX_LIST_ENTITY_NUM = 10000u;
     }  // namespace
 
     void EntityList::setRebuildStart(int start)
@@ -272,7 +272,6 @@ namespace FX {
         if (type & TransparencyDirty)
         {
             list.commandList.insert(pos.second);
-            list.profileList.insert(pos.second);
         }
 
         if (type & MatrixDirty)
@@ -280,7 +279,7 @@ namespace FX {
             list.matrixList.insert(pos.second);
         }
 
-        if (type & ColorDirty)
+        if (type & MaterialDirty)
         {
             list.profileList.insert(pos.second);
         }
@@ -303,14 +302,14 @@ namespace FX {
 
         if (pEntity->type() == ScreenTextID)
         {
-            if (pEntity->profile().font.valid() == false)
+            if (pEntity->material().font.valid() == false)
             {
                 BasicLog::out(BasicLog::kWarn, "Trying to add a text entity with invalid font, which may lead to unexpected behavior.");
             }
 
             for (; i < group.size(); i++)
             {
-                if (group[i].font == pEntity->profile().font && group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+                if (group[i].font == pEntity->material().font && group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
                 {
                     break;
                 }
@@ -334,7 +333,7 @@ namespace FX {
             newList.index = i;
             if (pEntity->type() == ScreenTextID)
             {
-                newList.font = pEntity->profile().font;
+                newList.font = pEntity->material().font;
             }
             group.emplace_back(std::move(newList));
         }

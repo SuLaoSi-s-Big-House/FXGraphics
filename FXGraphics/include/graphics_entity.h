@@ -3,12 +3,11 @@
 
 #include <vector>
 #include <unordered_map>
-#include <string>
 #include <limits>
 #include "glm.hpp"
 
-#include "basic_vector.h"
 #include "basic_macro.h"
+#include "graphics_material_manager.h"
 
 namespace FX {
 
@@ -27,9 +26,9 @@ namespace FX {
     using DirtyType = unsigned int;
 
     constexpr DirtyType DataDirty = 1 << 0;
-    constexpr DirtyType ColorDirty = 1 << 1;
-    constexpr DirtyType TransparencyDirty = 1 << 2;
-    constexpr DirtyType MatrixDirty = 1 << 3;
+    constexpr DirtyType MatrixDirty = 1 << 1;
+    constexpr DirtyType MaterialDirty = 1 << 2;
+    constexpr DirtyType TransparencyDirty = 1 << 3;
     constexpr DirtyType VisibleDirty = 1 << 4;
     constexpr DirtyType FontDirty = 1 << 5;
     // For users:
@@ -54,24 +53,6 @@ namespace FX {
         int second = -1;
 
         bool valid(void) const;
-    };
-
-    struct Font {
-        std::string name = "Arial";
-        unsigned char size = 16;
-
-        bool operator==(const Font& other) const;
-        bool valid(void) const;
-    };
-
-    // 实体属性
-    struct EntityProfile {
-        glm::mat4 matrix = glm::mat4(1.0f);
-        Font font;
-        vec4uc color = { 255, 255, 255, 255 };
-        bool visible = true;
-        vec4f custom1;    // 预留属性，修改后用户需要自行调用setDirty通知图形系统
-        vec4f custom2;
     };
 
     class GraphicsEntityManager;
@@ -110,8 +91,13 @@ namespace FX {
         // 预留接口，用户可以重写用来对接上层业务。默认返回空指针。图形系统不会主动调用。
         virtual void* owner(void) const;
 
-        void setProfile(const EntityProfile& profile);
-        virtual const EntityProfile& profile(void);
+        void setMatrix(const glm::mat4& matrix);
+        virtual const glm::mat4& matrix(void);
+
+        void setMaterial(const Material& material);
+        virtual const Material& material(void);
+
+        MaterialHandle materialHandle(void) const;
 
         EntityType type(void) const;
 
@@ -134,7 +120,8 @@ namespace FX {
         std::vector<float> m_normal;
         std::vector<float> m_uv;
         std::vector<unsigned int> m_index;
-        EntityProfile m_profile;
+        glm::mat4 m_matrix = glm::mat4(1.0f);
+        MaterialHandle m_materialHandle = DefaultMaterialHandle;
         const EntityType m_type = 0;
 
         static std::unordered_map<EntityType, PrimitiveMode> s_entityTypeMap;

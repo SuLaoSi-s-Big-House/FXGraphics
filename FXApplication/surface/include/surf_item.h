@@ -32,7 +32,7 @@ namespace FX {
         void setDepth(float depth);
         float depth(void) const;
 
-        const EntityProfile& profile(void) override;
+        const glm::mat4& matrix(void) override;
 
     protected:
         vec2i m_position;

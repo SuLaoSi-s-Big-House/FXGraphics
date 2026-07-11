@@ -89,10 +89,9 @@ namespace FX {
     // profile //////////////////////////////////////////////////////////
 
     struct NormalProfileData {
-        glm::mat4 matrix;
-        vec4f color;
-        vec4f custom1;
-        vec4f custom2;
+        glm::mat4 matrix = glm::mat4(1.0f);
+        unsigned int materialHandle = 0;
+        unsigned int reserved[3] = {0, 0, 0};
     };
 
     template<class T>
@@ -106,16 +105,8 @@ namespace FX {
     {
         assert(pEntity);
         assert(pDest);
-        auto& profile = pEntity->profile();
-        pDest->matrix = profile.matrix;
-        pDest->color = {
-            profile.color.r / 255.0f,
-            profile.color.g / 255.0f,
-            profile.color.b / 255.0f,
-            profile.color.a / 255.0f,
-        };
-        pDest->custom1 = profile.custom1;
-        pDest->custom2 = profile.custom2;
+        pDest->matrix = pEntity->matrix();
+        pDest->materialHandle = static_cast<unsigned int>(pEntity->materialHandle());
     }
 
     // command //////////////////////////////////////////////////////////

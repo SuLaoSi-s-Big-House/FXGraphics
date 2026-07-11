@@ -2,6 +2,7 @@
 
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
+#include "graphics_material_manager.h"
 
 namespace FX {
 
@@ -19,7 +20,11 @@ namespace FX {
     void SurfEntity::setDepth(float depth)
     {
         m_depth = depth;
-        setDirty(ColorDirty);
+        Material material = GraphicsMaterialManager::instance().get(m_materialHandle);
+        material.custom1.x = depth;
+        GraphicsMaterialManager::instance().unref(m_materialHandle);
+        m_materialHandle = GraphicsMaterialManager::instance().ref(material);
+        setDirty(MaterialDirty);
     }
 
     float SurfEntity::depth() const
@@ -27,11 +32,10 @@ namespace FX {
         return m_depth;
     }
 
-    const EntityProfile& SurfEntity::profile()
+    const glm::mat4& SurfEntity::matrix()
     {
-        m_profile.matrix = glm::translate(glm::mat4(1.0f), glm::vec3(m_position.x, m_position.y, 0.0f));
-        m_profile.custom1.x = m_depth;    // custom1.x作为实体深度
-        return m_profile;
+        m_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(m_position.x, m_position.y, 0.0f));
+        return m_matrix;
     }
 
 } // namespace FX

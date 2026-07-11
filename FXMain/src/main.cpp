@@ -1,4 +1,5 @@
 ﻿#include <random>
+#include <array>
 #include <glm.hpp>
 #include "graphics_window.h"
 #include "graphics_entity.h"
@@ -6,6 +7,7 @@
 #include "graphics_printer.h"
 #include "graphics_camera.h"
 #include "graphics_font_manager.h"
+#include "graphics_material_manager.h"
 #include "surf_text_item.h"
 #include "logic_camera.h"
 #include "basic_vector.h"
@@ -69,6 +71,80 @@ private:
     FX::vec4f m_position;
 };
 
+class Edge : public FX::GraphicsEntity {
+public:
+    Edge(void) : GraphicsEntity(FX::NormalLineStripID), m_position({ 0.0f, 0.0f, 0.0f, 1.0f })
+    {
+        FX::Material material = FX::GraphicsMaterialManager::instance().get(m_materialHandle);
+        material.baseColor = { 0, 0, 0, 255 };
+        FX::GraphicsMaterialManager::instance().unref(m_materialHandle);
+        m_materialHandle = FX::GraphicsMaterialManager::instance().ref(material);
+        setDirty(FX::MaterialDirty);
+    }
+    explicit Edge(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalLineStripID),
+        m_position({ x, y, z, radius })
+    {
+        FX::Material material = FX::GraphicsMaterialManager::instance().get(m_materialHandle);
+        material.baseColor = { 0, 0, 0, 255 };
+        FX::GraphicsMaterialManager::instance().unref(m_materialHandle);
+        m_materialHandle = FX::GraphicsMaterialManager::instance().ref(material);
+        setDirty(FX::MaterialDirty);
+    }
+
+    ~Edge(void) = default;
+
+    void generate(void) override
+    {
+        m_vertex = {
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+        };
+        m_normal = {
+            1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,
+            -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
+            0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0,
+            0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,
+            0, 0, 1,  0, 0, 1,  0, 0, 1,  0, 0, 1,
+            0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+        };
+        m_uv = m_vertex;
+        m_index = {
+            0,  1,  2,  3,  FX::RestartMark,
+            4,  5,  6,  7,  FX::RestartMark,
+            8,  9,  10, 11, FX::RestartMark,
+            12, 13, 14, 15, FX::RestartMark,
+            16, 17, 18, 19, FX::RestartMark,
+            20, 21, 22, 23
+        };
+    }
+
+private:
+    FX::vec4f m_position;
+};
+
+
 class AxisLine : public FX::GraphicsEntity {
 public:
     explicit AxisLine(const FX::vec3f& dir) : GraphicsEntity(FX::NormalLineID), m_direction(dir) {}
@@ -86,8 +162,7 @@ public:
         if (!FX::Math::isEqual(m_scale, scale))
         {
             m_scale = scale;
-            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-            setDirty(FX::MatrixDirty);
+            setMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(scale)));
         }
     }
 
@@ -179,8 +254,7 @@ public:
         if (!FX::Math::isEqual(m_scale, scale))
         {
             m_scale = scale;
-            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-            setDirty(FX::MatrixDirty);
+            setMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(scale)));
         }
     }
 
@@ -191,7 +265,8 @@ private:
 
 std::random_device rDevice;
 std::mt19937 rEngine(rDevice());
-std::uniform_int_distribution<> range(0, 7);
+std::uniform_int_distribution<> range1(0, 99999);
+std::uniform_int_distribution<> range2(0, 255);
 
 int main(void)
 {
@@ -202,14 +277,16 @@ int main(void)
     window1.use();
     window1.frame();
 
-    FX::GraphicsWindow window2(800, 600);
-    window2.use();
-    window2.frame();
-
-    Box* boxs[8] = {};
-    for (int i = 0; i < 8; i++)
+    std::vector<Box*> boxs;
+    std::vector<Edge*> edges;
+    boxs.resize(100000);
+    edges.resize(100000);
+    for (int i = 0; i < boxs.size(); i++)
     {
-        boxs[i] = new Box(5 * std::sin(2 * 3.1415926f * i / 8), 5 * std::cos(2 * 3.1415926f * i / 8), 0.0f, 1.0f);
+        boxs[i] = new Box(static_cast<float>((i % 10000) / 100), static_cast<float>((i % 10000) % 100), static_cast<float>(i / 10000),
+            0.2f + 0.4f * std::sin(i * static_cast<float>(FX::Math::PI)));
+        edges[i] = new Edge(static_cast<float>((i % 10000) / 100), static_cast<float>((i % 10000) % 100), static_cast<float>(i / 10000),
+            0.2f + 0.4f * std::sin(i * static_cast<float>(FX::Math::PI)));
     }
 
     FX::GraphicsNormalPrinter printer1;
@@ -240,11 +317,13 @@ int main(void)
     FX::GraphicsScene scene;
     scene.addPrinter(&printer2, FX::NormalFaceStripID);
     scene.addPrinter(&printer1, FX::NormalFaceID);
+    scene.addPrinter(&printer1, FX::NormalLineStripID);
     scene.addPrinter(&printer1, FX::NormalLineID);
     scene.addPrinter(&printer3, FX::ScreenTextID);
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < boxs.size(); i++)
     {
         scene.addEntity(boxs[i]);
+        scene.addEntity(edges[i]);
     }
 
     AxisLine axisX({ 1, 0, 0 });
@@ -265,37 +344,38 @@ int main(void)
     scene.bindCamera(&camera.get());
 
     FX::BasicBounding<> box;
-    box.expand(FX::vec3f{ 6, 6, 6 });
-    box.expand(FX::vec3f{ -6, -6, -6 });
+    box.expand(FX::vec3f{ 120, 120, 120 });
+    box.expand(FX::vec3f{ -20, -20, -20 });
     camera.observe(box);
 
     FX::SurfTextEntity text1;
     {
-        auto profile = text1.profile();
-        profile.font = { name1, 16 };
-        profile.color = { 0, 200, 255, 255 };
-        text1.setProfile(profile);
+        FX::Material material = text1.material();
+        material.font = { name1, 16 };
+        material.baseColor = { 0, 200, 255, 255 };
+        text1.setMaterial(material);
         scene.addEntity(&text1);
         text1.setPosition({ 5, 5 });
     }
 
     FX::SurfTextEntity text2;
     {
-        auto profile = text2.profile();
-        profile.font = { name1, 12 };
-        profile.color = { 200, 200, 200, 255 };
-        text2.setProfile(profile);
+        FX::Material material = text2.material();
+        material.font = { name1, 12 };
+        material.baseColor = { 200, 200, 200, 255 };
+        text2.setMaterial(material);
         scene.addEntity(&text2);
         text2.setPosition({ 5, 545 });
     }
 
-    int i = 0;
+    std::vector<int> visibleList;
+    visibleList.resize(1000, 0);
     int n = 0;
     long long sumT = 0;
     int frames = 0;
     int fps = 0;
     auto last = std::chrono::high_resolution_clock::now();
-    while (!window1.shouldClose() && !window2.shouldClose())
+    while (!window1.shouldClose())
     {
         auto now = std::chrono::high_resolution_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::microseconds>(now - last).count();
@@ -366,25 +446,39 @@ int main(void)
 
         if (n % 10 == 0)
         {
-            FX::EntityProfile profile = boxs[i]->profile();
-            profile.visible = true;
-            boxs[i]->setProfile(profile);
-            i = range(rEngine);
-            profile = boxs[i]->profile();
-            profile.visible = false;
-            boxs[i]->setProfile(profile);
+            //for (int i = 0; i < 1000; i++)
+            //{
+            //    auto j = range1(rEngine);
+            //    FX::Material material = boxs[j]->material();
+            //    material.baseColor = {
+            //        static_cast<unsigned char>(range2(rEngine)),
+            //        static_cast<unsigned char>(range2(rEngine)),
+            //        static_cast<unsigned char>(range2(rEngine)),
+            //        static_cast<unsigned char>(range2(rEngine)),
+            //    };
+            //    boxs[j]->setMaterial(material);
+            //}
+
+            for (auto j : visibleList)
+            {
+                FX::Material material = boxs[j]->material();
+                material.visible = true;
+                boxs[j]->setMaterial(material);
+            }
+
+            for (int i = 0; i < 1000; i++)
+            {
+                auto j = range1(rEngine);
+                FX::Material material = boxs[j]->material();
+                material.visible = false;
+                boxs[j]->setMaterial(material);
+                visibleList[i] = j;
+            }
         }
 
         window1.use();
         scene.draw();
         window1.frame();
-
-        if (n % 60 == 0)
-        {
-            window2.use();
-            scene.draw();
-            window2.frame();
-        }
 
         if (sumT >= 5e5)
         {
@@ -395,8 +489,9 @@ int main(void)
         frames++;
     }
 
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < boxs.size(); i++)
     {
         delete boxs[i];
+        delete edges[i];
     }
 }

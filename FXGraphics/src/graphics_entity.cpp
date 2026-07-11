@@ -5,19 +5,36 @@
 
 namespace FX {
 
+    namespace {
+
+        template<typename T>
+        inline DirtyType compare(const T& left, const T& right, DirtyType type)
+        {
+            return (left == right) ? 0 : type;
+        }
+
+        template<typename T, typename... Args>
+        inline DirtyType compare(const T& left, const T& right, DirtyType type, const Args&... args)
+        {
+            DirtyType ret = (left == right) ? 0 : type;
+            return ret | compare(args...);
+        }
+
+        inline DirtyType compare(const Material& left, const Material& right)
+        {
+            return compare(left.baseColor, right.baseColor, MaterialDirty,
+                left.baseColor.a, right.baseColor.a, TransparencyDirty | MaterialDirty,
+                left.visible, right.visible, VisibleDirty | MaterialDirty,
+                left.metallic, right.metallic, MaterialDirty,
+                left.roughness, right.roughness, MaterialDirty,
+                left.font, right.font, FontDirty);
+        }
+
+    }  // namespace
+
     bool GroupPos::valid() const
     {
         return first >= 0 && second >= 0;
-    }
-
-    bool Font::operator==(const Font& other) const
-    {
-        return this->name == other.name && this->size == other.size;
-    }
-
-    bool Font::valid() const
-    {
-        return name.empty() == false && size > 0;
     }
 
     GraphicsEntity::~GraphicsEntity()
@@ -29,6 +46,11 @@ namespace FX {
             {
                 pair.first->removeEntity(this);
             }
+        }
+
+        if (m_materialHandle != DefaultMaterialHandle)
+        {
+            GraphicsMaterialManager::instance().unref(m_materialHandle);
         }
     }
 
@@ -67,40 +89,42 @@ namespace FX {
         return nullptr;
     }
 
-    void GraphicsEntity::setProfile(const EntityProfile& profile)
+    void GraphicsEntity::setMatrix(const glm::mat4& matrix)
     {
-        DirtyType dirtyType = 0;
-
-        if (m_profile.matrix != profile.matrix)
+        if (m_matrix != matrix)
         {
-            dirtyType |= MatrixDirty;
+            m_matrix = matrix;
+            setDirty(MatrixDirty);
         }
-        if (m_profile.color != profile.color)
-        {
-            dirtyType |= ColorDirty;
-        }
-        if (m_profile.color.a != profile.color.a)
-        {
-            dirtyType |= TransparencyDirty;
-        }
-        if (m_profile.visible != profile.visible)
-        {
-            dirtyType |= VisibleDirty;
-        }
-        if ((m_profile.font == profile.font) == false)
-        {
-            dirtyType |= DataDirty;
-            dirtyType |= FontDirty;
-        }
-
-        m_profile = profile;
-
-        setDirty(dirtyType);
     }
 
-    const EntityProfile& GraphicsEntity::profile()
+    const glm::mat4& GraphicsEntity::matrix()
     {
-        return m_profile;
+        return m_matrix;
+    }
+
+    void GraphicsEntity::setMaterial(const Material& material)
+    {
+        auto& oldMaterial = GraphicsMaterialManager::instance().get(m_materialHandle);
+        auto dirtyType = compare(oldMaterial, material);
+
+        if (dirtyType > 0)
+        {
+            GraphicsMaterialManager::instance().unref(m_materialHandle);
+            m_materialHandle = GraphicsMaterialManager::instance().ref(material);
+
+            setDirty(dirtyType);
+        }
+    }
+
+    const Material& GraphicsEntity::material()
+    {
+        return GraphicsMaterialManager::instance().get(m_materialHandle);
+    }
+
+    MaterialHandle GraphicsEntity::materialHandle() const
+    {
+        return m_materialHandle;
     }
 
     EntityType GraphicsEntity::type() const

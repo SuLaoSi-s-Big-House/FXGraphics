@@ -10,10 +10,12 @@ out vec4 aColor;
 
 void main()
 {
-    mat4 model = EntityProfile[aRank.y].model;
+    mat4 model = EntityProfile[aRank.y].matrix;
+    uint handle = EntityProfile[aRank.y].materialHandle.x;
+
     aPosInView = vMatrix * model * vec4(aPos, 1);
     gl_Position = pMatrix * aPosInView;
     aNormInView = normalize(vMatrix * model * vec4(aNormal, 0));
 
-    aColor = EntityProfile[aRank.y].color;
+    aColor = EntityMaterial[handle].rgba;
 }

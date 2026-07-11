@@ -1,7 +1,5 @@
 ﻿#version 430 core
 
-#include "normal_uniform.h"
-
 in vec4 aPosInView;
 in vec4 aNormInView;
 in vec4 aColor;

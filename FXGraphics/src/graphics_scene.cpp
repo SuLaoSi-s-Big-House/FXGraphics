@@ -9,6 +9,7 @@
 #include "graphics_camera.h"
 #include "graphics_texture.h"
 #include "graphics_font_manager.h"
+#include "graphics_material_manager.h"
 
 namespace FX {
 
@@ -379,6 +380,8 @@ namespace FX {
         pUbo->bind(0);
 
         glViewport(0, 0, size.x, size.y);
+
+        GraphicsMaterialManager::instance().bind(NormalMaterialSlot);
     }
 
     void GraphicsScene::afterDraw()
