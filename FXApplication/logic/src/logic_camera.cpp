@@ -16,7 +16,7 @@ namespace FX {
         constexpr float DEFAULT_OBSERVE_FOV = static_cast<float>(Math::PI / 6);
         constexpr float VIEWPORT_PADDING = 1.2f;
         constexpr float DEFAULT_ROTATE_SPEED = 0.01f;
-        constexpr float DEFAULT_MOVE_SPEED = 0.05f;
+        constexpr float DEFAULT_MOVE_SPEED = 0.2f;
 
     }  // namespace
 

@@ -97,7 +97,7 @@ namespace FX {
         s_windowMap.insert({ m_pWindowHandle, this });
 
         // 垂直同步
-        glfwSwapInterval(1);
+        glfwSwapInterval(0);
 
         // 窗口事件的回调函数
         glfwSetWindowSizeCallback(m_pWindowHandle, windowResizeCallback);
@@ -126,6 +126,8 @@ namespace FX {
         m_isMultiSample ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
         glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);    // 使用OpenGL图元重启
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);    // 解除OpenGL texture 4字节对齐的限制
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 1.0f);
 
         m_vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
     }

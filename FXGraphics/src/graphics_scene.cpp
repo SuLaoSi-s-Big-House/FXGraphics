@@ -260,6 +260,8 @@ namespace FX {
                         auto pTexture = static_cast<TextureInfo*>(const_cast<GraphicsTexture*>(fontInfo.pTexture)->getOrCreate());
                         assert(pTexture != nullptr);
                         pTexture->bind(TextTextureUnit);
+
+                        glDepthMask(GL_TRUE);
                     }
 
                     auto& buffers = m_pBufferManager->generate(list, type, i);
@@ -286,6 +288,11 @@ namespace FX {
                     pSsbo->bind(NormalProfileSlot);
 
                     pPrinter->draw(mode, pDibo->commandNum());
+
+                    if (pair.first == ScreenTextID)
+                    {
+                        glDepthMask(GL_FALSE);
+                    }
                 }
             }
         };

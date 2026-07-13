@@ -16,6 +16,24 @@ namespace FX {
         constexpr unsigned int UvBufferIndex = 2;
         constexpr unsigned int RankBufferIndex = 3;
         constexpr unsigned int VertexBufferNum = 4;
+
+        inline bool shouldFullyUpdate(int start, int end, unsigned int num)
+        {
+            assert(end >= start);
+            assert(num > 0);
+
+            if (num < 300)
+            {
+                return false;
+            }
+            else if (num > 2000)
+            {
+                return true;
+            }
+
+            return num * 6 > static_cast<unsigned int>(end - start + 1);
+        }
+
     }  // namespace
 
     void GraphicsBufferManager::accept(const EntityList& list, EntityType type, int index)
@@ -210,24 +228,52 @@ namespace FX {
             }
         }
 
-        // 处理list dirty
-        if (infos.pSsbo->dirtyList().empty() == false)
+        auto& dirtyList = infos.pSsbo->dirtyList();
+        if (dirtyList.empty() == false)
         {
             infos.pSsbo->bind();
-            
-            NormalProfileData profile;
 
-            for (auto i : infos.pSsbo->dirtyList())
+            auto start = *dirtyList.begin();
+            auto end = *dirtyList.rbegin();
+
+            bool fully = shouldFullyUpdate(start, end, static_cast<unsigned int>(dirtyList.size()));
+
+            if (fully)
             {
-                if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                std::vector<NormalProfileData> profile;
+                profile.resize(end - start + 1);
+
+                for (int i = start; i <= end; i++)
                 {
-                    assert(0);
-                    continue;
+                    assert(i < list.entityList.size());
+
+                    if (list.entityList[i] == nullptr)
+                    {
+                        continue;
+                    }
+
+                    exportProfile(list.entityList[i], &profile[i - start]);
                 }
 
-                exportProfile(list.entityList[i], &profile);
+                infos.pSsbo->setSubData(static_cast<unsigned int>(start * sizeof(NormalProfileData)),
+                    static_cast<unsigned int>(profile.size() * sizeof(NormalProfileData)), profile.data());
+            }
+            else
+            {
+                NormalProfileData profile;
 
-                infos.pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
+                for (auto i : dirtyList)
+                {
+                    if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                    {
+                        assert(0);
+                        continue;
+                    }
+
+                    exportProfile(list.entityList[i], &profile);
+
+                    infos.pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
+                }
             }
 
             infos.pSsbo->unbind();

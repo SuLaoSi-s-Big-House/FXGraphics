@@ -11,7 +11,7 @@ void main()
 {
     mat4 model = EntityProfile[aRank.y].model;
     vec2 pos = 2 * (model * vec4(aPos, 1.0)).xy / viewport;
-    gl_Position = vec4(pos.x - 1, 1 - pos.y, 0.0, 1.0);
+    gl_Position = vec4(pos.x - 1, 1 - pos.y, EntityProfile[aRank.y].custom1.x, 1.0);
 
     aTexCoord = aUv;
 

@@ -18,7 +18,7 @@ namespace FX {
         constexpr unsigned int TEXT_TEXTURE_SIZE = 1024u;
 
         struct FontManager {
-            FontManager::~FontManager();
+            ~FontManager();
 
             std::string load(const std::string& path);
             const stbtt_fontinfo* find(const std::string& name) const;

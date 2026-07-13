@@ -11,7 +11,7 @@ namespace FX {
     public:
         BasicImage(void) = default;
 
-        BasicImage::BasicImage(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
+        BasicImage(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
         {
             if (width == 0 || height == 0 || channels == 0 || (reference && pData == nullptr))
             {
@@ -27,12 +27,12 @@ namespace FX {
             accept(width * height * channels, pData, reference);
         }
 
-        BasicImage::~BasicImage(void)
+        ~BasicImage(void)
         {
             release();
         }
 
-        void BasicImage::setData(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
+        void setData(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
         {
             if (width == 0 || height == 0 || channels == 0 || (reference && pData == nullptr))
             {
@@ -50,17 +50,17 @@ namespace FX {
             accept(width * height * channels, pData, reference);
         }
 
-        unsigned int BasicImage::width(void) const
+        unsigned int width(void) const
         {
             return m_width;
         }
 
-        unsigned int BasicImage::height(void) const
+        unsigned int height(void) const
         {
             return m_height;
         }
 
-        unsigned char BasicImage::channels(void) const
+        unsigned char channels(void) const
         {
             return m_channels;
         }
@@ -70,17 +70,17 @@ namespace FX {
             return m_reference;
         }
 
-        const T* BasicImage::data(void) const
+        const T* data(void) const
         {
             return m_pData;
         }
 
-        bool BasicImage::valid(void) const
+        bool valid(void) const
         {
             return m_width > 0 && m_height > 0 && m_channels > 0 && m_pData != nullptr;
         }
 
-        BasicImage::BasicImage(const BasicImage& other)
+        BasicImage(const BasicImage& other)
         {
             m_reference = other.m_reference;
 
@@ -93,7 +93,7 @@ namespace FX {
             }
         }
 
-        BasicImage& BasicImage::operator=(const BasicImage& other)
+        BasicImage& operator=(const BasicImage& other)
         {
             if (this == &other)
             {
@@ -120,7 +120,7 @@ namespace FX {
             return *this;
         }
 
-        BasicImage::BasicImage(BasicImage&& other)
+        BasicImage(BasicImage&& other)
         {
             m_reference = other.m_reference;
 
@@ -134,7 +134,7 @@ namespace FX {
             }
         }
 
-        BasicImage& BasicImage::operator=(BasicImage&& other)
+        BasicImage& operator=(BasicImage&& other)
         {
             if (this == &other)
             {
@@ -163,7 +163,7 @@ namespace FX {
         }
 
     private:
-        void BasicImage::accept(unsigned int pixels, T* pData, bool reference)
+        void accept(unsigned int pixels, T* pData, bool reference)
         {
             if (reference)
             {
@@ -178,7 +178,7 @@ namespace FX {
             }
         }
 
-        void BasicImage::release(void)
+        void release(void)
         {
             if (m_reference == false && m_pData != nullptr)
             {

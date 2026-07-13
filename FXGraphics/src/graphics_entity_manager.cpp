@@ -6,7 +6,7 @@
 namespace FX {
 
     namespace {
-        constexpr unsigned int MAX_LIST_ENTITY_NUM = 1000u;
+        constexpr unsigned int MAX_LIST_ENTITY_NUM = 10000u;
     }  // namespace
 
     void EntityList::setRebuildStart(int start)

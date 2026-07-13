@@ -1,4 +1,7 @@
-﻿#include <random>
+﻿#include <condition_variable>
+#include <mutex>
+#include <random>
+#include <thread>
 #include <glm.hpp>
 #include "graphics_window.h"
 #include "graphics_entity.h"
@@ -69,6 +72,45 @@ private:
     FX::vec4f m_position;
 };
 
+class Edge : public FX::GraphicsEntity {
+public:
+    Edge(void) : GraphicsEntity(FX::NormalLineStripID), m_position({ 0.0f, 0.0f, 0.0f, 1.0f })
+    {
+        m_profile.color = { 0, 0, 0, 255 };
+    }
+    explicit Edge(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalLineStripID),
+        m_position({ x, y, z, radius })
+    {
+        m_profile.color = { 0, 0, 0, 255 };
+    }
+
+    ~Edge(void) = default;
+
+    void generate(void) override
+    {
+        m_vertex = {
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x + m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y - m_position.w, m_position.z - m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z + m_position.w,
+            m_position.x - m_position.w, m_position.y + m_position.w, m_position.z - m_position.w,
+        };
+        m_normal = m_vertex;
+        m_uv = m_vertex;
+        m_index = {
+            0, 1, 3, 2, 0, 4, 5, 7, 6, 4, FX::RestartMark,
+            1, 5, 7, 3, 2, 6
+        };
+    }
+
+private:
+    FX::vec4f m_position;
+};
+
+
 class AxisLine : public FX::GraphicsEntity {
 public:
     explicit AxisLine(const FX::vec3f& dir) : GraphicsEntity(FX::NormalLineID), m_direction(dir) {}
@@ -83,12 +125,10 @@ public:
 
     void setScale(float scale)
     {
-        if (!FX::Math::isEqual(m_scale, scale))
-        {
-            m_scale = scale;
-            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-            setDirty(FX::MatrixDirty);
-        }
+        scale *= 5;
+        m_scale = scale;
+        m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+        setDirty(FX::MatrixDirty);
     }
 
 private:
@@ -126,7 +166,7 @@ public:
             float angle = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(segments);
             base_pts[i] = base_center + r * (std::cos(angle) * u + std::sin(angle) * v);
             glm::vec3 edge_dir = glm::normalize(base_pts[i] - tip);
-            glm::vec3 tangent  = glm::cross(d, glm::normalize(base_pts[i] - base_center));
+            glm::vec3 tangent = glm::cross(d, glm::normalize(base_pts[i] - base_center));
             side_normals[i] = glm::normalize(glm::cross(edge_dir, tangent));
         }
 
@@ -141,16 +181,16 @@ public:
             int j = (i + 1) % segments;
             glm::vec3 tip_n = glm::normalize(side_normals[i] + side_normals[j]);
 
-            m_vertex.insert(m_vertex.end(), {tip.x, tip.y, tip.z});
-            m_normal.insert(m_normal.end(), {tip_n.x, tip_n.y, tip_n.z});
+            m_vertex.insert(m_vertex.end(), { tip.x, tip.y, tip.z });
+            m_normal.insert(m_normal.end(), { tip_n.x, tip_n.y, tip_n.z });
 
-            m_vertex.insert(m_vertex.end(), {base_pts[i].x, base_pts[i].y, base_pts[i].z});
-            m_normal.insert(m_normal.end(), {side_normals[i].x, side_normals[i].y, side_normals[i].z});
+            m_vertex.insert(m_vertex.end(), { base_pts[i].x, base_pts[i].y, base_pts[i].z });
+            m_normal.insert(m_normal.end(), { side_normals[i].x, side_normals[i].y, side_normals[i].z });
 
-            m_vertex.insert(m_vertex.end(), {base_pts[j].x, base_pts[j].y, base_pts[j].z});
-            m_normal.insert(m_normal.end(), {side_normals[j].x, side_normals[j].y, side_normals[j].z});
+            m_vertex.insert(m_vertex.end(), { base_pts[j].x, base_pts[j].y, base_pts[j].z });
+            m_normal.insert(m_normal.end(), { side_normals[j].x, side_normals[j].y, side_normals[j].z });
 
-            m_index.insert(m_index.end(), {idx, idx + 1, idx + 2});
+            m_index.insert(m_index.end(), { idx, idx + 1, idx + 2 });
             idx += 3;
         }
 
@@ -158,16 +198,16 @@ public:
         for (int i = 0; i < segments; ++i) {
             int j = (i + 1) % segments;
 
-            m_vertex.insert(m_vertex.end(), {base_center.x, base_center.y, base_center.z});
-            m_normal.insert(m_normal.end(), {base_normal.x, base_normal.y, base_normal.z});
+            m_vertex.insert(m_vertex.end(), { base_center.x, base_center.y, base_center.z });
+            m_normal.insert(m_normal.end(), { base_normal.x, base_normal.y, base_normal.z });
 
-            m_vertex.insert(m_vertex.end(), {base_pts[j].x, base_pts[j].y, base_pts[j].z});
-            m_normal.insert(m_normal.end(), {base_normal.x, base_normal.y, base_normal.z});
+            m_vertex.insert(m_vertex.end(), { base_pts[j].x, base_pts[j].y, base_pts[j].z });
+            m_normal.insert(m_normal.end(), { base_normal.x, base_normal.y, base_normal.z });
 
-            m_vertex.insert(m_vertex.end(), {base_pts[i].x, base_pts[i].y, base_pts[i].z});
-            m_normal.insert(m_normal.end(), {base_normal.x, base_normal.y, base_normal.z});
+            m_vertex.insert(m_vertex.end(), { base_pts[i].x, base_pts[i].y, base_pts[i].z });
+            m_normal.insert(m_normal.end(), { base_normal.x, base_normal.y, base_normal.z });
 
-            m_index.insert(m_index.end(), {idx, idx + 1, idx + 2});
+            m_index.insert(m_index.end(), { idx, idx + 1, idx + 2 });
             idx += 3;
         }
 
@@ -176,12 +216,10 @@ public:
 
     void setScale(float scale)
     {
-        if (!FX::Math::isEqual(m_scale, scale))
-        {
-            m_scale = scale;
-            m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-            setDirty(FX::MatrixDirty);
-        }
+        scale *= 5;
+        m_scale = scale;
+        m_profile.matrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+        setDirty(FX::MatrixDirty);
     }
 
 private:
@@ -189,27 +227,87 @@ private:
     float m_scale = 1.0f;
 };
 
-std::random_device rDevice;
-std::mt19937 rEngine(rDevice());
-std::uniform_int_distribution<> range(0, 7);
+struct RamdomColor {
+    unsigned int index = 0;
+    FX::vec4uc color;
+};
+
+struct RamdomRotate {
+    unsigned int index = 0;
+    unsigned int rotate = 0;
+};
+
+std::vector<RamdomColor> colorList;
+std::vector<RamdomRotate> rotateList;
+std::vector<unsigned int> visibleList;
+
+std::mutex randomMutex;
+std::condition_variable randomCv;
+
+bool stop = false;
+bool work = true;
+
+void randomFunc(void)
+{
+    std::random_device rDevice;
+    std::mt19937 rEngine(rDevice());
+    std::uniform_int_distribution<> range1(0, 99999);
+    std::uniform_int_distribution<> range2(0, 510);
+
+    while (true)
+    {
+        colorList.resize(1000);
+        rotateList.resize(1000);
+        visibleList.resize(1000);
+
+        for (int i = 0; i < 1000; i++)
+        {
+            colorList[i].index = range1(rEngine);
+            colorList[i].color = {
+                static_cast<unsigned char>(std::min(range2(rEngine), 255)),
+                static_cast<unsigned char>(std::min(range2(rEngine), 255)),
+                static_cast<unsigned char>(std::min(range2(rEngine), 255)),
+                static_cast<unsigned char>(std::min(range2(rEngine), 255))
+            };
+
+            rotateList[i].index = range1(rEngine);
+            rotateList[i].rotate = range1(rEngine);
+
+            visibleList[i] = range1(rEngine);
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(randomMutex);
+            work = false;
+        }
+
+        randomCv.notify_one();
+
+        std::unique_lock<std::mutex> lock(randomMutex);
+        randomCv.wait(lock, []() { return stop || work; });
+
+        if (stop)
+        {
+            return;
+        }
+    }
+}
+
 
 int main(void)
 {
     auto name1 = FX::GraphicsFontManager::instance().loadFontFile("./font/HarmonyOS_Sans_SC_Regular.ttf");
     auto name2 = FX::GraphicsFontManager::instance().loadFontFile("./font/AlibabaPuHuiTi-3-55-Regular.ttf");
+    auto name3 = FX::GraphicsFontManager::instance().loadFontFile("./font/BlueakaBeta-DB-GBK.ttf");
 
-    FX::GraphicsWindow window1(800, 600);
-    window1.use();
-    window1.frame();
-
-    FX::GraphicsWindow window2(800, 600);
-    window2.use();
-    window2.frame();
-
-    Box* boxs[8] = {};
-    for (int i = 0; i < 8; i++)
+    std::vector<Box*> boxs;
+    std::vector<Edge*> edges;
+    boxs.resize(100000);
+    edges.resize(100000);
+    for (int i = 0; i < boxs.size(); i++)
     {
-        boxs[i] = new Box(5 * std::sin(2 * 3.1415926f * i / 8), 5 * std::cos(2 * 3.1415926f * i / 8), 0.0f, 1.0f);
+        boxs[i] = new Box(static_cast<float>((i % 10000) / 100), static_cast<float>((i % 10000) % 100), static_cast<float>(i / 10000), 0.25f);
+        edges[i] = new Edge(static_cast<float>((i % 10000) / 100), static_cast<float>((i % 10000) % 100), static_cast<float>(i / 10000), 0.25f);
     }
 
     FX::GraphicsNormalPrinter printer1;
@@ -240,12 +338,13 @@ int main(void)
     FX::GraphicsScene scene;
     scene.addPrinter(&printer2, FX::NormalFaceStripID);
     scene.addPrinter(&printer1, FX::NormalFaceID);
+    scene.addPrinter(&printer1, FX::NormalLineStripID);
     scene.addPrinter(&printer1, FX::NormalLineID);
     scene.addPrinter(&printer3, FX::ScreenTextID);
-    for (int i = 0; i < 8; i++)
-    {
-        scene.addEntity(boxs[i]);
-    }
+
+    FX::GraphicsWindow window1(800, 600, "10w正方体", true);
+    window1.use();
+    window1.frame();
 
     AxisLine axisX({ 1, 0, 0 });
     AxisCone coneX({ 1, 0, 0 });
@@ -265,42 +364,82 @@ int main(void)
     scene.bindCamera(&camera.get());
 
     FX::BasicBounding<> box;
-    box.expand(FX::vec3f{ 6, 6, 6 });
-    box.expand(FX::vec3f{ -6, -6, -6 });
+    box.expand(FX::vec3f{ 120, 120, 20 });
+    box.expand(FX::vec3f{ -20, -20, -20 });
     camera.observe(box);
 
     FX::SurfTextEntity text1;
     {
-        auto profile = text1.profile();
+        text1.setText("FPS: 0\n窗口大小: [800, 600]");
+        FX::EntityProfile profile = text1.profile();
         profile.font = { name1, 16 };
         profile.color = { 0, 200, 255, 255 };
         text1.setProfile(profile);
         scene.addEntity(&text1);
         text1.setPosition({ 5, 5 });
+        text1.setDepth(-0.99f);
     }
 
     FX::SurfTextEntity text2;
     {
-        auto profile = text2.profile();
+        text2.setText("观察中心: (0, 0, 0)\n相机方向: (0, 0, 0)\n相机距离: 0\n缩放比例: 0");
+        FX::EntityProfile profile = text2.profile();
         profile.font = { name1, 12 };
         profile.color = { 200, 200, 200, 255 };
         text2.setProfile(profile);
         scene.addEntity(&text2);
         text2.setPosition({ 5, 545 });
+        text2.setDepth(-0.99f);
     }
 
-    int i = 0;
-    int n = 0;
+    FX::SurfTextEntity text3;
+    FX::SurfTextEntity text4;
+    {
+        text3.setText("Loading...");
+        FX::EntityProfile profile = text3.profile();
+        profile.font = { name3, 20 };
+        profile.color = { 255, 150, 0, 255 };
+        text3.setProfile(profile);
+        scene.addEntity(&text3);
+        text3.setPosition({ (800 - 85) / 2, 75 });
+        text3.setDepth(-0.99f);
+
+        text4.setText("每100毫秒改变随机1000个正方体的颜色，1000个可见性，1000个矩阵");
+        profile = text4.profile();
+        profile.font = { name1, 18 };
+        profile.color = { 200, 200, 200, 255 };
+        text4.setProfile(profile);
+        scene.addEntity(&text4);
+        text4.setPosition({ (800 - 480) / 2, 110});
+        text4.setDepth(-0.99f);
+    }
+
+    scene.draw();
+    window1.frame();
+
+    for (int i = 0; i < boxs.size(); i++)
+    {
+        scene.addEntity(boxs[i]);
+        scene.addEntity(edges[i]);
+    }
+
+    std::thread randomThread(&randomFunc);
+
+    text3.setText("性能测试，10w正方体");
+    text3.setPosition({ (800 - 200) / 2, 77 });
+
     long long sumT = 0;
+    long long updateT = 0;
     int frames = 0;
     int fps = 0;
     auto last = std::chrono::high_resolution_clock::now();
-    while (!window1.shouldClose() && !window2.shouldClose())
+    while (!window1.shouldClose())
     {
         auto now = std::chrono::high_resolution_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::microseconds>(now - last).count();
         last = now;
         sumT += dur;
+        updateT += dur;
 
         auto& interactor = window1.interactor();
         auto flag = interactor.enventFlag();
@@ -308,10 +447,10 @@ int main(void)
         {
             if (sumT >= 5e5)
             {
-                fps = static_cast<int>(1e6f * frames / sumT + 0.5f);
+                fps = static_cast<int>(1e6f * frames / sumT * 10 + 0.5f);
             }
 
-            std::string str = "FPS: " + std::to_string(fps) + "\n";
+            std::string str = "FPS: " + std::to_string(fps / 10) + "." + std::to_string(fps % 10) + "\n";
 
             auto size = window1.size();
             str += "窗口大小: [" + std::to_string(size.x) + ", " + std::to_string(size.y) + "]\n";
@@ -361,42 +500,74 @@ int main(void)
             {
                 auto size = window1.size();
                 text2.setPosition({ 5, size.y - 55 });
+                text3.setPosition({ (size.x - 200) / 2, 75});
+                text4.setPosition({ (size.x - 480) / 2, 100});
             }
         }
 
-        if (n % 10 == 0)
+        if (updateT >= 100000)
         {
-            FX::EntityProfile profile = boxs[i]->profile();
-            profile.visible = true;
-            boxs[i]->setProfile(profile);
-            i = range(rEngine);
-            profile = boxs[i]->profile();
-            profile.visible = false;
-            boxs[i]->setProfile(profile);
+            updateT -= 100000;
+
+            std::unique_lock<std::mutex> lock(randomMutex);
+            randomCv.wait(lock, []() { return !work; });
+
+            for (auto& data : colorList)
+            {
+                FX::EntityProfile profile = boxs[data.index]->profile();
+                profile.color = data.color;
+                boxs[data.index]->setProfile(profile);
+            }
+
+            for (auto& i : visibleList)
+            {
+                FX::EntityProfile profile = boxs[i]->profile();
+                profile.visible = (i % 2) == 0;
+                boxs[i]->setProfile(profile);
+
+            }
+
+            for (auto& data : rotateList)
+            {
+                auto position = glm::vec3(static_cast<float>((data.index % 10000) / 100), static_cast<float>((data.index % 10000) % 100), static_cast<float>(data.index / 10000));
+                auto matrix1 = glm::translate(glm::mat4(1.0f), -position);
+                auto matrix2 = (data.rotate > 50000) ? glm::mat4(1.0f) : glm::rotate(glm::mat4(1.0f), 2 * 3.1415926f * (data.rotate / 50000.0f), glm::vec3(1.0f));
+                auto matrix3 = glm::translate(glm::mat4(1.0f), position);
+                FX::EntityProfile profile = boxs[data.index]->profile();
+                profile.matrix = matrix3 * matrix2 * matrix1;
+                boxs[data.index]->setProfile(profile);
+                profile = edges[data.index]->profile();
+                profile.matrix = matrix3 * matrix2 * matrix1;
+                edges[data.index]->setProfile(profile);
+            }
+
+            work = true;
+            lock.unlock();
+            randomCv.notify_one();
         }
 
         window1.use();
         scene.draw();
         window1.frame();
 
-        if (n % 60 == 0)
-        {
-            window2.use();
-            scene.draw();
-            window2.frame();
-        }
-
         if (sumT >= 5e5)
         {
             sumT = frames = 0;
         }
 
-        n++;
         frames++;
     }
 
-    for (int i = 0; i < 8; i++)
+    {
+        std::lock_guard<std::mutex> lock(randomMutex);
+        stop = true;
+    }
+    randomCv.notify_one();
+    randomThread.join();
+
+    for (int i = 0; i < boxs.size(); i++)
     {
         delete boxs[i];
+        delete edges[i];
     }
 }
