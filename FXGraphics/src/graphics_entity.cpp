@@ -10,16 +10,6 @@ namespace FX {
         return first >= 0 && second >= 0;
     }
 
-    bool Font::operator==(const Font& other) const
-    {
-        return this->name == other.name && this->size == other.size;
-    }
-
-    bool Font::valid() const
-    {
-        return name.empty() == false && size > 0;
-    }
-
     GraphicsEntity::~GraphicsEntity()
     {
         if (!m_managerList.empty())
