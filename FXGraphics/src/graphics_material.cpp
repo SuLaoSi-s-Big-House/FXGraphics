@@ -1,6 +1,7 @@
 ﻿#include "graphics_material.h"
 
 #include <assert.h>
+#include <string.h>
 #include "basic_log.h"
 #include "graphics_texture_manager.h"
 
@@ -20,9 +21,16 @@ namespace FX {
     class TextureKeyImpl {
     public:
         TextureKeyImpl() = default;
+
         ~TextureKeyImpl()
         {
-            // TODO 通知GraphicsTextureManager减计数
+            for (unsigned char i = 0; i < TextureKey::TextureSlotNum; i++)
+            {
+                if (m_handles[i] != InvalidHandle)
+                {
+                    GraphicsTextureManager::instance().unref(m_handles[i]);
+                }
+            }
         }
 
         TextureHandle setImage(unsigned char slot, const BasicImage<>& image)
@@ -32,20 +40,22 @@ namespace FX {
             if (image.valid() == false)
             {
                 BasicLog::out(BasicLog::kWarn, "Trying to add an invalid image to texture key, discard.");
-                return false;
+                return InvalidHandle;
             }
 
-            // TODO 如果已经设置过image（m_handles中存在有效的handle），需要向GraphicsTextureManager查询image信息
-            // image必须width/height/channels相同才能成功设置，否则立刻返回InvalidHandle
+            auto result = GraphicsTextureManager::instance().addImage(slot, image);
+            if (result.first == InvalidHandle || result.second == InvalidHandle)
+            {
+                return InvalidHandle;
+            }
 
             if (m_handles[slot] != InvalidHandle)
             {
-                // TODO 如果这个slot已经有image，需要向GraphicsTextureManager解引用
+                GraphicsTextureManager::instance().unref(m_handles[slot]);
             }
 
-            // TODO 向GraphicsTextureManager添加image，拿到ImageHandle与TextureHandle
-            // m_handles[slot] = imageHandle;
-            // return textureHandle;
+            m_handles[slot] = result.second;
+            return result.first;
         }
 
         bool resetImage(TextureSlot slot)
@@ -54,28 +64,75 @@ namespace FX {
 
             if (m_handles[slot] != InvalidHandle)
             {
-                // TODO 通知GraphicsTextureManager解引用
+                GraphicsTextureManager::instance().unref(m_handles[slot]);
+                m_handles[slot] = InvalidHandle;
+                return true;
             }
+
+            return false;
         }
 
         TextureKeyImpl(const TextureKeyImpl& other)
         {
-            // TODO 拷贝构造，需要通知GraphicsTextureManager加引用
+            for (unsigned char i = 0; i < TextureKey::TextureSlotNum; i++)
+            {
+                m_handles[i] = other.m_handles[i];
+                if (m_handles[i] != InvalidHandle)
+                {
+                    GraphicsTextureManager::instance().ref(m_handles[i]);
+                }
+            }
         }
 
         TextureKeyImpl& operator=(const TextureKeyImpl& other)
         {
-            // TODO 拷贝操作符，需要通知GraphicsTextureManager加引用
+            if (this != &other)
+            {
+                for (unsigned char i = 0; i < TextureKey::TextureSlotNum; i++)
+                {
+                    if (m_handles[i] != InvalidHandle)
+                    {
+                        GraphicsTextureManager::instance().unref(m_handles[i]);
+                    }
+
+                    m_handles[i] = other.m_handles[i];
+
+                    if (m_handles[i] != InvalidHandle)
+                    {
+                        GraphicsTextureManager::instance().ref(m_handles[i]);
+                    }
+                }
+            }
+
+            return *this;
         }
 
         TextureKeyImpl(TextureKeyImpl&& other) noexcept
         {
-            // TODO
+            for (unsigned char i = 0; i < TextureKey::TextureSlotNum; i++)
+            {
+                m_handles[i] = other.m_handles[i];
+                other.m_handles[i] = InvalidHandle;
+            }
         }
 
         TextureKeyImpl& operator=(TextureKeyImpl&& other) noexcept
         {
-            // TODO
+            if (this != &other)
+            {
+                for (unsigned char i = 0; i < TextureKey::TextureSlotNum; i++)
+                {
+                    if (m_handles[i] != InvalidHandle)
+                    {
+                        GraphicsTextureManager::instance().unref(m_handles[i]);
+                    }
+
+                    m_handles[i] = other.m_handles[i];
+                    other.m_handles[i] = InvalidHandle;
+                }
+            }
+
+            return *this;
         }
 
     private:
@@ -104,8 +161,14 @@ namespace FX {
         }
 
         auto handle = m_pImpl->setImage(slot, image);
-        m_handles[slot] = handle;
-        return handle != InvalidHandle;
+
+        if (handle != InvalidHandle)
+        {
+            m_handles[slot] = handle;
+            return true;
+        }
+
+        return false;
     }
 
     bool TextureKey::resetImage(TextureSlot slot)
@@ -119,6 +182,7 @@ namespace FX {
         if (m_handles[slot] != InvalidHandle)
         {
             m_pImpl->resetImage(slot);
+            m_handles[slot] = InvalidHandle;
             return true;
         }
 
@@ -185,7 +249,7 @@ namespace FX {
     {
         // TextureKey::operator==的设计意图较为特殊，仅用于判断GraphicsEntity是否能进入某一个EntityList
         // 如果两个TextureKey相等（即所有TextureHandle），意味着使用同一套texture，能合并绘制，因此可以放在一起
-        return memcmp(m_handles, other.m_handles, TextureSlotNum * sizeof(TextureHandle));
+        return memcmp(m_handles, other.m_handles, TextureSlotNum * sizeof(TextureHandle)) == 0;
     }
 
 } // namespace FX

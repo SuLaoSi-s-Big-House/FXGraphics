@@ -35,8 +35,6 @@ namespace FX {
 
     class TextureKey {
     public:
-        friend class TextureKeyImpl;
-
         TextureKey(void);
         ~TextureKey(void);
 
@@ -51,8 +49,9 @@ namespace FX {
         TextureKey& operator=(TextureKey&& other) noexcept;
         bool operator==(const TextureKey& other) const;
 
-    private:
         static constexpr unsigned char TextureSlotNum = 3;
+
+    private:
         TextureHandle m_handles[TextureSlotNum] = { InvalidHandle, InvalidHandle, InvalidHandle };
         TextureKeyImpl* m_pImpl = nullptr;
     };

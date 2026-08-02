@@ -17,6 +17,7 @@ SET(INCLUDE_LIST
     ${INCLUDE_PATH}/basic_log.h
     ${INCLUDE_PATH}/basic_bounding.h
     ${INCLUDE_PATH}/basic_image.h
+    ${INCLUDE_PATH}/basic_hash.h
 )
 
 SOURCE_GROUP(include FILES
@@ -25,6 +26,7 @@ SOURCE_GROUP(include FILES
 
 SET(SRC_LIST
     ${SRC_PATH}/basic_log.cpp
+    ${SRC_PATH}/basic_hash.cpp
 )
 
 SOURCE_GROUP(src FILES

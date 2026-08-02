@@ -3,11 +3,13 @@
 
 #include "graphics_material.h"
 
+#include <stdint.h>
+#include <vector>
+#include <unordered_map>
+
 namespace FX {
 
-    // 设计意图：GraphicsTextureManager用于管理image与texture数据，协助绘制
-    // GraphicsTextureManager会接收TextureKeyImpl传递的image，在内部做去重，根据image的width/height/channles/pData做hash去重，并维护引用计数
-    // 接收到新的image后，需要根据width/height/channles/slot找到合适的texture array，将图片存入texture array（决定TextureHandle）
+    class GraphicsTexture;
 
     class GraphicsTextureManager {
     public:
@@ -18,21 +20,78 @@ namespace FX {
         bool ref(ImageHandle handle);
         bool unref(ImageHandle handle);
 
-        // TODO query接口，帮助TextureKeyImpl判断是否能成功添加image
+        bool queryImageMatch(ImageHandle handle, unsigned int width, unsigned int height, unsigned char channels) const;
 
     private:
-        GraphicsTextureManager(void) = default;
+        GraphicsTextureManager(void);
         ~GraphicsTextureManager(void) = default;
 
+        TextureHandle allocTextureHandle(const TextureEntry& entry);
+        void freeTextureHandle(TextureHandle handle);
+
+        ImageHandle allocImageHandle(const ImageEntry& entry);
+        void freeImageHandle(ImageHandle handle);
+
+    public:
+        static constexpr unsigned char TextureSlotNum = 3;
+        static constexpr unsigned char TextureLevelNum = 4;
+        static constexpr unsigned char ImageChannelNum = 4;
+
     private:
-        // TODO 成员变量
-        // 1.image pool
-        // 根据image的width/height/channles/pData做hash（根据operator==判断是否碰撞），维护ImageHandle与image数据和引用计数
-        // 添加image时，image pool中会存储（拷贝）一份一样的BasicImage（不依赖外部数据的生命周期）
-        // 2.texture pool
-        // 当新增image时，需要为image找到存放的texture，并确定TextureHandle
-        // 由于image的尺寸不可控，texture pool只存储标准大小的texture，只有64/256/512/1024像素的四种档位，需要为image找到合适的档位，并填充空缺的数据
-        // 即texture总是几种标准尺寸，而image是与原始数据相同的大小，这意味着texture array需要记录原始image数据的尺寸，便于生成uv数据
+
+        
+
+        using Hash = uint64_t;
+
+        struct ImageData {
+            BasicImage<> image;
+            Hash hash = 0;
+            unsigned long long refNum = 0;
+            // unsigned char level = 0;
+            TextureHandle textureHandle = InvalidHandle;
+        };
+
+        std::unordered_map<Hash, ImageHandle> m_imageMap[TextureLevelNum][ImageChannelNum];
+        std::vector<ImageData> m_imagePool;
+        std::vector<unsigned int> m_freeList;
+
+        struct TextureData {
+            GraphicsTexture texture;
+            std::vector<unsigned int> freeList;
+        };
+
+        std::vector<unsigned int> m_textureMap[TextureSlotNum][TextureLevelNum][ImageChannelNum];
+        std::vector<TextureData> m_texturePool;
+
+
+        //struct TextureEntry {
+        //    TextureSlot slot = 0;
+        //    unsigned char tier = 0;
+        //    unsigned char channels = 0;
+        //    unsigned int arrayIndex = 0;
+        //    unsigned int layer = 0;
+        //};
+
+        //struct ImageEntry {
+        //    BasicImage<unsigned char> image;
+        //    uint64_t hash = 0;
+        //    unsigned int refCount = 0;
+        //    unsigned char tier = 0;
+        //    TextureHandle texHandle = InvalidHandle;
+        //};
+
+        //struct TextureGroup {
+        //    std::vector<GraphicsTexture*> arrays;
+        //    std::vector<unsigned int> freeSlots;
+        //};
+
+        //TextureGroup m_groups[SlotCount][TierCount][MaxChannelCount];
+
+        //std::vector<TextureEntry> m_textureEntries;
+        //std::vector<unsigned int> m_textureFreeList;
+
+        //std::vector<ImageEntry> m_imagePool;
+        
     };
 
 } // namespace FX
