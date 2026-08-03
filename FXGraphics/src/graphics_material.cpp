@@ -72,6 +72,16 @@ namespace FX {
             return false;
         }
 
+        //ImageHandle image(TextureSlot slot) const
+        //{
+        //    if (slot >= TextureKey::TextureSlotNum)
+        //    {
+        //        return InvalidHandle;
+        //    }
+
+        //    return m_handles[slot];
+        //}
+
         TextureKeyImpl(const TextureKeyImpl& other)
         {
             for (unsigned char i = 0; i < TextureKey::TextureSlotNum; i++)
@@ -189,16 +199,26 @@ namespace FX {
         return false;
     }
 
-    TextureHandle TextureKey::handle(TextureSlot slot) const
-    {
-        if (slot >= TextureSlotNum)
-        {
-            BasicLog::out(BasicLog::kWarn, "Invalid texture slot when querying handle from texture key.");
-            return InvalidHandle;
-        }
+    //TextureHandle TextureKey::handle(TextureSlot slot) const
+    //{
+    //    if (slot >= TextureSlotNum)
+    //    {
+    //        BasicLog::out(BasicLog::kWarn, "Invalid texture slot when querying handle from texture key.");
+    //        return InvalidHandle;
+    //    }
 
-        return m_handles[slot];
-    }
+    //    return m_handles[slot];
+    //}
+
+    //ImageHandle TextureKey::image(TextureSlot slot) const
+    //{
+    //    if (slot >= TextureSlotNum || m_pImpl == nullptr)
+    //    {
+    //        return InvalidHandle;
+    //    }
+
+    //    return m_pImpl->image(slot);
+    //}
 
     TextureKey::TextureKey(const TextureKey& other) : m_pImpl(new TextureKeyImpl(*other.m_pImpl))
     {

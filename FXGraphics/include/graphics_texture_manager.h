@@ -1,18 +1,22 @@
 ﻿#ifndef _GRAPHICS_TEXTURE_MANAGER_H_
 #define _GRAPHICS_TEXTURE_MANAGER_H_
 
-#include "graphics_material.h"
-
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
+#include <memory>
+
+#include "graphics_material.h"
+#include "graphics_texture.h"
 
 namespace FX {
 
-    class GraphicsTexture;
+    class TextureWorker;
 
     class GraphicsTextureManager {
     public:
+        friend class TextureWorker;
+    
         static GraphicsTextureManager& instance(void);
 
         std::pair<TextureHandle, ImageHandle> addImage(TextureSlot slot, const BasicImage<>& image);
@@ -20,17 +24,19 @@ namespace FX {
         bool ref(ImageHandle handle);
         bool unref(ImageHandle handle);
 
-        bool queryImageMatch(ImageHandle handle, unsigned int width, unsigned int height, unsigned char channels) const;
+       // bool queryImageMatch(ImageHandle handle, unsigned int width, unsigned int height, unsigned char channels) const;
+
+        void sync(void) const;
+
+        //unsigned int imageLayer(ImageHandle handle) const;
+        //int imageWidth(ImageHandle handle) const;
+        //int imageHeight(ImageHandle handle) const;
+        //unsigned int imageTierSize(ImageHandle handle) const;
+        //const GraphicsTexture* poolTexture(TextureHandle handle) const;
 
     private:
         GraphicsTextureManager(void);
-        ~GraphicsTextureManager(void) = default;
-
-        TextureHandle allocTextureHandle(const TextureEntry& entry);
-        void freeTextureHandle(TextureHandle handle);
-
-        ImageHandle allocImageHandle(const ImageEntry& entry);
-        void freeImageHandle(ImageHandle handle);
+        ~GraphicsTextureManager(void);
 
     public:
         static constexpr unsigned char TextureSlotNum = 3;
@@ -38,31 +44,35 @@ namespace FX {
         static constexpr unsigned char ImageChannelNum = 4;
 
     private:
-
-        
-
         using Hash = uint64_t;
 
         struct ImageData {
             BasicImage<> image;
             Hash hash = 0;
-            unsigned long long refNum = 0;
-            // unsigned char level = 0;
             TextureHandle textureHandle = InvalidHandle;
+            unsigned int layer = 0;
+            unsigned long long refNum = 0;
         };
 
-        std::unordered_map<Hash, ImageHandle> m_imageMap[TextureLevelNum][ImageChannelNum];
-        std::vector<ImageData> m_imagePool;
-        std::vector<unsigned int> m_freeList;
-
         struct TextureData {
-            GraphicsTexture texture;
+            std::unique_ptr<GraphicsTexture> pTexture;
+            //TextureSlot slot = 0;
+            //unsigned char level = 0;
+            //unsigned char channels = 0;
+            //unsigned int layerCount = 0;
             std::vector<unsigned int> freeList;
         };
 
-        std::vector<unsigned int> m_textureMap[TextureSlotNum][TextureLevelNum][ImageChannelNum];
+        std::unordered_multimap<Hash, ImageHandle> m_imageMap[TextureLevelNum][ImageChannelNum + 1];
+        std::vector<ImageData> m_imagePool;
+        std::vector<unsigned int> m_imageFreeList;
+
+        std::vector<unsigned int> m_textureMap[TextureSlotNum][TextureLevelNum][ImageChannelNum + 1];
         std::vector<TextureData> m_texturePool;
 
+        std::unique_ptr<TextureWorker> m_pWorker;
+
+        //////////////////////////////////////////////////////////////////////////
 
         //struct TextureEntry {
         //    TextureSlot slot = 0;
@@ -91,7 +101,7 @@ namespace FX {
         //std::vector<unsigned int> m_textureFreeList;
 
         //std::vector<ImageEntry> m_imagePool;
-        
+
     };
 
 } // namespace FX

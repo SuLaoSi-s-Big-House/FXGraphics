@@ -11,7 +11,7 @@ namespace FX {
     public:
         BasicImage(void) = default;
 
-        BasicImage(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
+        BasicImage(unsigned int width, unsigned int height, unsigned char channels, const T* pData, bool reference = false)
         {
             if (width == 0 || height == 0 || channels == 0 || (reference && pData == nullptr))
             {
@@ -32,7 +32,7 @@ namespace FX {
             release();
         }
 
-        void setData(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
+        void setData(unsigned int width, unsigned int height, unsigned char channels, const T* pData, bool reference = false)
         {
             if (width == 0 || height == 0 || channels == 0 || (reference && pData == nullptr))
             {
@@ -120,21 +120,20 @@ namespace FX {
             return *this;
         }
 
-        BasicImage(BasicImage&& other)
+        BasicImage(BasicImage&& other) noexcept
+            : m_pData(other.m_pData)
+            , m_width(other.m_width)
+            , m_height(other.m_height)
+            , m_channels(other.m_channels)
+            , m_reference(other.m_reference)
         {
-            m_reference = other.m_reference;
-
-            if (other.valid())
-            {
-                m_width = other.m_width;
-                m_height = other.m_height;
-                m_channels = other.m_channels;
-                accept(other.m_width * other.m_height * other.m_channels, other.m_pData, other.m_reference);
-                other.m_pData = nullptr;
-            }
+            other.m_pData = nullptr;
+            other.m_width = 0;
+            other.m_height = 0;
+            other.m_channels = 0;
         }
 
-        BasicImage& operator=(BasicImage&& other)
+        BasicImage& operator=(BasicImage&& other) noexcept
         {
             if (this == &other)
             {
@@ -143,32 +142,27 @@ namespace FX {
 
             release();
 
+            m_pData = other.m_pData;
+            m_width = other.m_width;
+            m_height = other.m_height;
+            m_channels = other.m_channels;
             m_reference = other.m_reference;
 
-            if (other.valid())
-            {
-                m_width = other.m_width;
-                m_height = other.m_height;
-                m_channels = other.m_channels;
-                accept(other.m_width * other.m_height * other.m_channels, other.m_pData, other.m_reference);
-                other.m_pData = nullptr;
-            }
-            else
-            {
-                m_width = m_height = 0;
-                m_channels = 0;
-            }
+            other.m_pData = nullptr;
+            other.m_width = 0;
+            other.m_height = 0;
+            other.m_channels = 0;
 
             return *this;
         }
 
     private:
-        void accept(unsigned int pixels, T* pData, bool reference)
+        void accept(unsigned int pixels, const T* pData, bool reference)
         {
             if (reference)
             {
                 assert(pData != nullptr);
-                m_pData = pData;
+                m_pData = const_cast<T*>(pData);
             }
             else
             {

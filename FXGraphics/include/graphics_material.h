@@ -41,7 +41,8 @@ namespace FX {
         bool setImage(TextureSlot slot, const BasicImage<>& image);
         bool resetImage(TextureSlot slot);
 
-        TextureHandle handle(TextureSlot slot) const;
+        //TextureHandle handle(TextureSlot slot) const;
+        //ImageHandle image(TextureSlot slot) const;
 
         TextureKey(const TextureKey& other);
         TextureKey& operator=(const TextureKey& other);
