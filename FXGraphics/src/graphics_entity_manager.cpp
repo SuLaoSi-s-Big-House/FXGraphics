@@ -2,11 +2,36 @@
 
 #include <assert.h>
 #include "basic_log.h"
+#include "graphics_texture_manager.h"
 
 namespace FX {
 
     namespace {
+
         constexpr unsigned int MAX_LIST_ENTITY_NUM = 1000u;
+
+        inline bool isSameList(const TextureKey& left, const TextureKey& right)
+        {
+            auto& manager = GraphicsTextureManager::instance();
+            for (unsigned int i = 0; i < TextureSlotNum; i++)
+            {
+                auto imageHandle1 = left.handle(i);
+                auto imageHandle2 = right.handle(i);
+
+                if (imageHandle1 != imageHandle2)
+                {
+                    auto textureHandle1 = manager.query(imageHandle1).textureHandle;
+                    auto textureHandle2 = manager.query(imageHandle2).textureHandle;
+                    if (textureHandle1 != textureHandle2)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
     }  // namespace
 
     void EntityList::setRebuildStart(int start)
@@ -233,7 +258,7 @@ namespace FX {
         auto& list = m_container[pEntity->type()][pos.first];
         assert(list.entityList[pos.second] == pEntity);
 
-        if (type & FontDirty && pEntity->type() == ScreenTextID)
+        if (type & FontDirty && isFontType(pEntity->type()))
         {
             list.entityList[pos.second] = nullptr;
             list.invalidNum++;
@@ -244,6 +269,27 @@ namespace FX {
 
             addEntity(pEntity);
             return true;
+        }
+
+        if (isTextureType(pEntity->type()))
+        {
+            if (type & TextureDirty)
+            {
+                list.entityList[pos.second] = nullptr;
+                list.invalidNum++;
+                list.commandList.insert(pos.second);
+                list.matrixList.erase(pos.second);
+                list.profileList.erase(pos.second);
+                pEntity->eraseGroup(this);
+
+                addEntity(pEntity);
+                return true;
+            }
+            else if (type & ImageDirty)
+            {
+                list.commandList.insert(pos.second);
+                list.profileList.insert(pos.second);
+            }
         }
 
         if (list.rebuildStart >= 0 && list.rebuildStart <= pos.second)
@@ -298,10 +344,11 @@ namespace FX {
         assert(pEntity != nullptr);
         assert(pEntity->groupPos(this).valid() == false);
 
+        auto type = pEntity->type();
+        auto& group = m_container[type];
         int i = 0;
-        auto& group = m_container[pEntity->type()];
 
-        if (pEntity->type() == ScreenTextID)
+        if (isFontType(type))
         {
             if (pEntity->profile().font.valid() == false)
             {
@@ -315,6 +362,34 @@ namespace FX {
                     break;
                 }
             }
+
+            if (i == group.size())
+            {
+                EntityList newList;
+                newList.pOwner = this;
+                newList.index = i;
+                newList.font = pEntity->profile().font;
+                group.emplace_back(std::move(newList));
+            }
+        }
+        else if (isTextureType(type))
+        {
+            for (; i < group.size(); i++)
+            {
+                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM && isSameList(group[i].texture, pEntity->profile().texture))
+                {
+                    break;
+                }
+            }
+
+            if (i == group.size())
+            {
+                EntityList newList;
+                newList.pOwner = this;
+                newList.index = i;
+                newList.texture = pEntity->profile().texture;
+                group.emplace_back(std::move(newList));
+            }
         }
         else
         {
@@ -325,18 +400,14 @@ namespace FX {
                     break;
                 }
             }
-        }
 
-        if (i == group.size())
-        {
-            EntityList newList;
-            newList.pOwner = this;
-            newList.index = i;
-            if (pEntity->type() == ScreenTextID)
+            if (i == group.size())
             {
-                newList.font = pEntity->profile().font;
+                EntityList newList;
+                newList.pOwner = this;
+                newList.index = i;
+                group.emplace_back(std::move(newList));
             }
-            group.emplace_back(std::move(newList));
         }
 
         return group[i];

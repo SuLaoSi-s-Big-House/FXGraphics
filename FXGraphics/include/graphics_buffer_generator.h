@@ -5,6 +5,7 @@
 #include "glm.hpp"
 #include "basic_vector.h"
 #include "graphics_entity.h"
+#include "graphics_texture_manager.h"
 
 namespace FX {
 
@@ -114,6 +115,43 @@ namespace FX {
             profile.color.b / 255.0f,
             profile.color.a / 255.0f,
         };
+        pDest->custom1 = profile.custom1;
+        pDest->custom2 = profile.custom2;
+    }
+
+    struct NormalTextureProfileData {
+        glm::mat4 matrix;
+        vec4f color;
+        vec4f uvScale1;    // (scaleX, scaleY, slice, 0)，base color slot，与normal_texture_profile.h保持一致
+        vec4f uvScale2;    // normal slot
+        vec4f uvScale3;    // orm slot
+        vec4f custom1;
+        vec4f custom2;
+    };
+
+    // C++与GLSL双端结构布局契约，normal_texture_profile.h中的NormalTextureProfileData需要与此保持一致
+    static_assert(sizeof(NormalTextureProfileData) == sizeof(glm::mat4) + 6 * sizeof(vec4f), "NormalTextureProfileData must match normal_texture_profile.h");
+
+    template<>
+    void exportProfile(GraphicsEntity* pEntity, NormalTextureProfileData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        auto& profile = pEntity->profile();
+        pDest->matrix = profile.matrix;
+        pDest->color = {
+            profile.color.r / 255.0f,
+            profile.color.g / 255.0f,
+            profile.color.b / 255.0f,
+            profile.color.a / 255.0f,
+        };
+        auto& manager = GraphicsTextureManager::instance();
+        auto info1 = manager.query(profile.texture.handle(BaseColorTextureSlot));
+        auto info2 = manager.query(profile.texture.handle(NormalTextureSlot));
+        auto info3 = manager.query(profile.texture.handle(ORMTextureSlot));
+        pDest->uvScale1 = { info1.scale.x, info1.scale.y, static_cast<float>(info1.slice), 0 };
+        pDest->uvScale2 = { info2.scale.x, info2.scale.y, static_cast<float>(info2.slice), 0 };
+        pDest->uvScale3 = { info3.scale.x, info3.scale.y, static_cast<float>(info3.slice), 0 };
         pDest->custom1 = profile.custom1;
         pDest->custom2 = profile.custom2;
     }

@@ -134,8 +134,8 @@ namespace FX {
         {
             if (m_width == image.width() && m_height == image.height() && translate(m_format) == image.channels())
             {
-                markImageDirty(static_cast<unsigned int>(m_imageList.size()));
                 m_imageList.emplace_back(ImagePtr<>(image));
+                markImageDirty(static_cast<unsigned int>(m_imageList.size() - 1));
             }
             else
             {
@@ -329,10 +329,11 @@ namespace FX {
             m_dataDepth = max + 1;
         }
 
-        if (pOwner->useMipmap())
-        {
-            glGenerateMipmap(target);
-        }
+        // TODO
+        //if (pOwner->useMipmap())
+        //{
+        //    glGenerateMipmap(target);
+        //}
 
         m_dirtyList.clear();
         m_paramDirty = false;
@@ -356,7 +357,7 @@ namespace FX {
 
     void TextureInfo::updateParam() const
     {
-        assert(m_paramDirty);
+        //assert(m_paramDirty);
         auto pOwner = static_cast<const GraphicsTextureBase*>(m_pOwner);
         auto target = static_cast<GLenum>(m_pOwner->type());
 

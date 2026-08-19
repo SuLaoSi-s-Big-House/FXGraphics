@@ -6,6 +6,7 @@
 #include "graphics_printer.h"
 #include "graphics_camera.h"
 #include "graphics_font_manager.h"
+#include "graphics_texture_manager.h"
 #include "surf_text_item.h"
 #include "logic_camera.h"
 #include "basic_vector.h"
@@ -63,6 +64,67 @@ public:
             16, 17, 18, 19, FX::RestartMark,
             20, 21, 22, 23
         };
+    }
+
+private:
+    FX::vec4f m_position;
+};
+
+class Sphere : public FX::GraphicsEntity {
+public:
+    Sphere(void) : GraphicsEntity(FX::NormalTextureFaceID_C), m_position({ 0.0f, 0.0f, 0.0f, 1.0f }) {}
+    explicit Sphere(float x, float y, float z, float radius) : GraphicsEntity(FX::NormalTextureFaceID_C),
+        m_position({ x, y, z, radius }) {}
+
+    ~Sphere(void) = default;
+
+    void generate(void) override
+    {
+        constexpr int SEGMENTS = 32;
+        constexpr int RINGS = 16;
+
+        m_vertex.clear();
+        m_normal.clear();
+        m_uv.clear();
+        m_index.clear();
+
+        // 每个四边形4个顶点组成一个triangle strip图元，u沿经度、v沿纬度
+        auto point = [this](float theta, float phi, float u, float v) {
+            FX::vec3f pos = {
+                m_position.x + m_position.w * std::cos(phi) * std::cos(theta),
+                m_position.y - m_position.w * std::sin(phi),
+                m_position.z - m_position.w * std::cos(phi) * std::sin(theta),
+            };
+            FX::vec3f normal = { pos.x - m_position.x, pos.y - m_position.y, pos.z - m_position.z };
+            auto length = std::sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+            normal.x /= length;
+            normal.y /= length;
+            normal.z /= length;
+
+            m_vertex.insert(m_vertex.end(), { pos.x, pos.y, pos.z });
+            m_normal.insert(m_normal.end(), { normal.x, normal.y, normal.z });
+            m_uv.insert(m_uv.end(), { u, v, 0 });
+        };
+
+        for (int r = 0; r < RINGS; r++)
+        {
+            float phi0 = static_cast<float>(FX::Math::PI) * (static_cast<float>(r) / RINGS - 0.5f);
+            float phi1 = static_cast<float>(FX::Math::PI) * (static_cast<float>(r + 1) / RINGS - 0.5f);
+
+            for (int s = 0; s < SEGMENTS; s++)
+            {
+                float theta0 = 2.0f * static_cast<float>(FX::Math::PI) * static_cast<float>(s) / SEGMENTS;
+                float theta1 = 2.0f * static_cast<float>(FX::Math::PI) * static_cast<float>(s + 1) / SEGMENTS;
+
+                point(theta0, phi0, static_cast<float>(s) / SEGMENTS, static_cast<float>(r) / RINGS);
+                point(theta0, phi1, static_cast<float>(s) / SEGMENTS, static_cast<float>(r + 1) / RINGS);
+                point(theta1, phi0, static_cast<float>(s + 1) / SEGMENTS, static_cast<float>(r) / RINGS);
+                point(theta1, phi1, static_cast<float>(s + 1) / SEGMENTS, static_cast<float>(r + 1) / RINGS);
+
+                auto i = static_cast<unsigned int>(m_vertex.size()) / 3 - 4;
+                m_index.insert(m_index.end(), { i, i + 1, i + 2, i + 3, i + 2, i + 1 });
+            }
+        }
     }
 
 private:
@@ -198,6 +260,19 @@ int main(void)
     auto name1 = FX::GraphicsFontManager::instance().loadFontFile("./font/HarmonyOS_Sans_SC_Regular.ttf");
     auto name2 = FX::GraphicsFontManager::instance().loadFontFile("./font/AlibabaPuHuiTi-3-55-Regular.ttf");
 
+    std::vector<std::string> images = {
+        "./image/mercury.jpg",
+        "./image/mars.jpg",
+        "./image/earth_daymap.jpg",
+        "./image/venus_surface.jpg",
+        "./image/jupiter.jpg",
+        "./image/saturn.jpg",
+        "./image/uranus.jpg",
+        "./image/neptune.jpg",
+    };
+
+    auto handles = FX::GraphicsTextureManager::instance().registerImage(images);
+
     FX::GraphicsWindow window1(800, 600);
     window1.use();
     window1.frame();
@@ -206,10 +281,13 @@ int main(void)
     window2.use();
     window2.frame();
 
-    Box* boxs[8] = {};
+    Sphere* spheres[8] = {};
     for (int i = 0; i < 8; i++)
     {
-        boxs[i] = new Box(5 * std::sin(2 * 3.1415926f * i / 8), 5 * std::cos(2 * 3.1415926f * i / 8), 0.0f, 1.0f);
+        spheres[i] = new Sphere(5 * std::sin(2 * 3.1415926f * i / 8), 5 * std::cos(2 * 3.1415926f * i / 8), 0.0f, 1.0f);
+        auto profile = spheres[i]->profile();
+        profile.texture.setImage(FX::BaseColorTextureSlot, handles[i]);
+        spheres[i]->setProfile(profile);
     }
 
     FX::GraphicsNormalPrinter printer1;
@@ -237,14 +315,32 @@ int main(void)
     printer3.addShader(FX::GPUItemType::kFrgShader, ifs);
     ifs.close();
 
+    FX::GraphicsNormalPrinter texturePrinterC;
+    ifs.open("./shader/normal_world_texture_c.vert");
+    texturePrinterC.addShader(FX::GPUItemType::kVtxShader, ifs);
+    ifs.close();
+    ifs.open("./shader/normal_world_texture_c.frag");
+    texturePrinterC.addShader(FX::GPUItemType::kFrgShader, ifs);
+    ifs.close();
+
+    FX::GraphicsNormalPrinter texturePrinterCN;
+    ifs.open("./shader/normal_world_texture_cn.vert");
+    texturePrinterCN.addShader(FX::GPUItemType::kVtxShader, ifs);
+    ifs.close();
+    ifs.open("./shader/normal_world_texture_cn.frag");
+    texturePrinterCN.addShader(FX::GPUItemType::kFrgShader, ifs);
+    ifs.close();
+
     FX::GraphicsScene scene;
     scene.addPrinter(&printer2, FX::NormalFaceStripID);
     scene.addPrinter(&printer1, FX::NormalFaceID);
     scene.addPrinter(&printer1, FX::NormalLineID);
     scene.addPrinter(&printer3, FX::ScreenTextID);
+    scene.addPrinter(&texturePrinterC, FX::NormalTextureFaceID_C);
+    scene.addPrinter(&texturePrinterCN, FX::NormalTextureFaceID_CN);
     for (int i = 0; i < 8; i++)
     {
-        scene.addEntity(boxs[i]);
+        scene.addEntity(spheres[i]);
     }
 
     AxisLine axisX({ 1, 0, 0 });
@@ -366,13 +462,13 @@ int main(void)
 
         if (n % 10 == 0)
         {
-            FX::EntityProfile profile = boxs[i]->profile();
+            FX::EntityProfile profile = spheres[i]->profile();
             profile.visible = true;
-            boxs[i]->setProfile(profile);
+            spheres[i]->setProfile(profile);
             i = range(rEngine);
-            profile = boxs[i]->profile();
+            profile = spheres[i]->profile();
             profile.visible = false;
-            boxs[i]->setProfile(profile);
+            spheres[i]->setProfile(profile);
         }
 
         window1.use();
@@ -397,6 +493,6 @@ int main(void)
 
     for (int i = 0; i < 8; i++)
     {
-        delete boxs[i];
+        delete spheres[i];
     }
 }

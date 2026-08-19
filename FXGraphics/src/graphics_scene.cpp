@@ -9,6 +9,7 @@
 #include "graphics_camera.h"
 #include "graphics_texture.h"
 #include "graphics_font_manager.h"
+#include "graphics_texture_manager.h"
 
 namespace FX {
 
@@ -225,7 +226,7 @@ namespace FX {
                 }
                 auto mode = typeMap.find(type)->second;
 
-                auto pPrinter = m_printerManager[type];
+                auto pPrinter = m_printerManager[type]; // TODO
                 if (pPrinter == nullptr || pPrinter->isReady() == false)
                 {
                     BasicLog::out(BasicLog::kWarn, "Cannot draw entities of type [", type, "] because printer is not ready.");
@@ -243,7 +244,7 @@ namespace FX {
                     }
                     assert(list.isDirty() == false);
 
-                    if (pair.first == ScreenTextID)
+                    if (isFontType(pair.first))
                     {
                         if (pipe != NormalTransCommand || list.font.valid() == false)
                         {
@@ -260,6 +261,10 @@ namespace FX {
                         auto pTexture = static_cast<TextureInfo*>(const_cast<GraphicsTexture*>(fontInfo.pTexture)->getOrCreate());
                         assert(pTexture != nullptr);
                         pTexture->bind(TextTextureUnit);
+                    }
+                    else if (isTextureType(pair.first))
+                    {
+                        GraphicsTextureManager::instance().bind(list.texture);
                     }
 
                     auto& buffers = m_pBufferManager->generate(list, type, i);

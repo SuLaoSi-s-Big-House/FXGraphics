@@ -130,176 +130,353 @@ namespace FX {
             pDibo->cleanDirty();
         }
 
-        // 处理rebuild dirty
-        if (rebuildStart >= 0)
+        if (isTextureType(type))
         {
-            std::vector<NormalVertexData> vertex;
-            std::vector<NormalNormalData> normal;
-            std::vector<NormalUvData> uv;
-            std::vector<NormalRankData> rank;
-            std::vector<unsigned int> indexs;
-            std::vector<NormalProfileData> profile;
-
-            vertex.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
-            normal.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
-            uv.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
-            rank.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
-            indexs.resize(list.indexSum.back() - list.indexSum[rebuildStart], RestartMark);
-            profile.resize(list.entityList.size() - rebuildStart);
-
-            for (auto i = static_cast<unsigned int>(rebuildStart); i < list.entityList.size(); i++)
+            // 处理rebuild dirty
+            if (rebuildStart >= 0)
             {
-                auto pEntity = list.entityList[i];
-                if (pEntity != nullptr)
+                std::vector<NormalVertexData> vertex;
+                std::vector<NormalNormalData> normal;
+                std::vector<NormalUvData> uv;
+                std::vector<NormalRankData> rank;
+                std::vector<unsigned int> indexs;
+                std::vector<NormalTextureProfileData> profile;
+
+                vertex.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                normal.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                uv.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                rank.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                indexs.resize(list.indexSum.back() - list.indexSum[rebuildStart], RestartMark);
+                profile.resize(list.entityList.size() - rebuildStart);
+
+                for (auto i = static_cast<unsigned int>(rebuildStart); i < list.entityList.size(); i++)
                 {
-                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &vertex[list.pointSum[i] - list.pointSum[rebuildStart]]);
-                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &normal[list.pointSum[i] - list.pointSum[rebuildStart]]);
-                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &uv[list.pointSum[i] - list.pointSum[rebuildStart]]);
-                    exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &rank[list.pointSum[i] - list.pointSum[rebuildStart]]);
-                    exportIndex(pEntity, list.pointSum[i], &indexs[list.indexSum[i] - list.indexSum[rebuildStart]]);
-                    exportProfile(pEntity, &profile[i - rebuildStart]);
+                    auto pEntity = list.entityList[i];
+                    if (pEntity != nullptr)
+                    {
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &vertex[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &normal[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &uv[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &rank[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportIndex(pEntity, list.pointSum[i], &indexs[list.indexSum[i] - list.indexSum[rebuildStart]]);
+                        exportProfile(pEntity, &profile[i - rebuildStart]);
+                    }
+                }
+
+                // 只有所有顶点数据均不为空时有效
+                if (vertex.empty() == false && normal.empty() == false && uv.empty() == false && rank.empty() == false &&
+                    indexs.empty() == false && profile.empty() == false)
+                {
+                    infos.pVao->bind();
+
+                    infos.pVbos[PositionBufferIndex]->bind();
+                    infos.pVbos[PositionBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalVertexData),
+                        static_cast<unsigned int>(vertex.size()) * sizeof(NormalVertexData), vertex.data());
+
+                    glVertexAttribPointer(PositionBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+                    glEnableVertexAttribArray(PositionBufferIndex);
+
+                    infos.pVbos[NormalBufferIndex]->bind();
+                    infos.pVbos[NormalBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalNormalData),
+                        static_cast<unsigned int>(normal.size()) * sizeof(NormalNormalData), normal.data());
+
+                    glVertexAttribPointer(NormalBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+                    glEnableVertexAttribArray(NormalBufferIndex);
+
+                    infos.pVbos[UvBufferIndex]->bind();
+                    infos.pVbos[UvBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalUvData),
+                        static_cast<unsigned int>(uv.size()) * sizeof(NormalUvData), uv.data());
+
+                    glVertexAttribPointer(UvBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+                    glEnableVertexAttribArray(UvBufferIndex);
+
+                    infos.pVbos[RankBufferIndex]->bind();
+                    infos.pVbos[RankBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalRankData),
+                        static_cast<unsigned int>(rank.size()) * sizeof(NormalRankData), rank.data());
+
+                    glVertexAttribIPointer(RankBufferIndex, 2, GL_INT, 2 * sizeof(int), 0);
+                    glEnableVertexAttribArray(RankBufferIndex);
+
+                    infos.pVbos[RankBufferIndex]->unbind();
+                    infos.pVao->unbind();
+
+                    infos.pEbo->bind();
+                    infos.pEbo->setSubData(list.indexSum[rebuildStart] * sizeof(unsigned int),
+                        static_cast<unsigned int>(indexs.size()) * sizeof(unsigned int), indexs.data());
+                    infos.pEbo->unbind();
+
+                    infos.pSsbo->bind();
+                    infos.pSsbo->setSubData(rebuildStart * sizeof(NormalTextureProfileData),
+                        static_cast<unsigned int>(profile.size()) * sizeof(NormalTextureProfileData), profile.data());
+                    infos.pSsbo->unbind();
                 }
             }
 
-            // 只有所有顶点数据均不为空时有效
-            if (vertex.empty() == false && normal.empty() == false && uv.empty() == false && rank.empty() == false &&
-                indexs.empty() == false && profile.empty() == false)
+            // 处理list dirty
+            if (infos.pSsbo->dirtyList().empty() == false)
             {
-                infos.pVao->bind();
-
-                infos.pVbos[PositionBufferIndex]->bind();
-                infos.pVbos[PositionBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalVertexData),
-                    static_cast<unsigned int>(vertex.size()) * sizeof(NormalVertexData), vertex.data());
-
-                glVertexAttribPointer(PositionBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-                glEnableVertexAttribArray(PositionBufferIndex);
-
-                infos.pVbos[NormalBufferIndex]->bind();
-                infos.pVbos[NormalBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalNormalData),
-                    static_cast<unsigned int>(normal.size()) * sizeof(NormalNormalData), normal.data());
-
-                glVertexAttribPointer(NormalBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-                glEnableVertexAttribArray(NormalBufferIndex);
-
-                infos.pVbos[UvBufferIndex]->bind();
-                infos.pVbos[UvBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalUvData),
-                    static_cast<unsigned int>(uv.size()) * sizeof(NormalUvData), uv.data());
-
-                glVertexAttribPointer(UvBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-                glEnableVertexAttribArray(UvBufferIndex);
-
-                infos.pVbos[RankBufferIndex]->bind();
-                infos.pVbos[RankBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalRankData),
-                    static_cast<unsigned int>(rank.size()) * sizeof(NormalRankData), rank.data());
-
-                glVertexAttribIPointer(RankBufferIndex, 2, GL_INT, 2 * sizeof(int), 0);
-                glEnableVertexAttribArray(RankBufferIndex);
-
-                infos.pVbos[RankBufferIndex]->unbind();
-                infos.pVao->unbind();
-
-                infos.pEbo->bind();
-                infos.pEbo->setSubData(list.indexSum[rebuildStart] * sizeof(unsigned int),
-                    static_cast<unsigned int>(indexs.size()) * sizeof(unsigned int), indexs.data());
-                infos.pEbo->unbind();
-
                 infos.pSsbo->bind();
-                infos.pSsbo->setSubData(rebuildStart * sizeof(NormalProfileData),
-                    static_cast<unsigned int>(profile.size()) * sizeof(NormalProfileData), profile.data());
+
+                NormalTextureProfileData profile;
+
+                for (auto i : infos.pSsbo->dirtyList())
+                {
+                    if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                    {
+                        assert(0);
+                        continue;
+                    }
+
+                    exportProfile(list.entityList[i], &profile);
+
+                    infos.pSsbo->setSubData(i * sizeof(NormalTextureProfileData), sizeof(profile), &profile);
+                }
+
                 infos.pSsbo->unbind();
             }
-        }
 
-        // 处理list dirty
-        if (infos.pSsbo->dirtyList().empty() == false)
-        {
-            infos.pSsbo->bind();
-            
-            NormalProfileData profile;
-
-            for (auto i : infos.pSsbo->dirtyList())
+            // 有dirty就重新生成全部command
+            // TODO 优化
+            if (rebuildStart >= 0 || infos.pDibos[NormalOpaqueCommand]->dirtyList().empty() == false ||
+                infos.pDibos[NormalTransCommand]->dirtyList().empty() == false)
             {
-                if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                std::vector<DrawElementsCommand> opaqueCommand;
+                std::vector<DrawElementsCommand> transCommand;
+                opaqueCommand.reserve(10);
+                transCommand.reserve(10);
+
+                auto lastCommand = NormalCommandNum;
+
+                for (int i = 0; i < list.entityList.size(); i++)
                 {
-                    assert(0);
-                    continue;
-                }
-
-                exportProfile(list.entityList[i], &profile);
-
-                infos.pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
-            }
-
-            infos.pSsbo->unbind();
-        }
-
-        // 有dirty就重新生成全部command
-        // TODO 优化
-        if (rebuildStart >= 0 || infos.pDibos[NormalOpaqueCommand]->dirtyList().empty() == false ||
-            infos.pDibos[NormalTransCommand]->dirtyList().empty() == false)
-        {
-            std::vector<DrawElementsCommand> opaqueCommand;
-            std::vector<DrawElementsCommand> transCommand;
-            opaqueCommand.reserve(10);
-            transCommand.reserve(10);
-
-            auto lastCommand = NormalCommandNum;
-
-            for (int i = 0; i < list.entityList.size(); i++)
-            {
-                auto pEntity = list.entityList[i];
-                if (pEntity != nullptr && pEntity->profile().visible)
-                {
-                    auto num = list.indexSum[i + 1] - list.indexSum[i];
-                    if (pEntity->profile().color.a == 255 && type != ScreenTextID)
+                    auto pEntity = list.entityList[i];
+                    if (pEntity != nullptr && pEntity->profile().visible)
                     {
-                        if (lastCommand == NormalOpaqueCommand)
+                        auto num = list.indexSum[i + 1] - list.indexSum[i];
+                        if (pEntity->profile().color.a == 255) // TODO
                         {
-                            assert(opaqueCommand.empty() == false);
-                            assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
-                            opaqueCommand.back().indexNum += num;
+                            if (lastCommand == NormalOpaqueCommand)
+                            {
+                                assert(opaqueCommand.empty() == false);
+                                assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
+                                opaqueCommand.back().indexNum += num;
+                            }
+                            else
+                            {
+                                opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                                lastCommand = NormalOpaqueCommand;
+                            }
                         }
                         else
                         {
-                            opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            lastCommand = NormalOpaqueCommand;
+                            if (lastCommand == NormalTransCommand)
+                            {
+                                assert(transCommand.empty() == false);
+                                assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
+                                transCommand.back().indexNum += num;
+                            }
+                            else
+                            {
+                                transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                                lastCommand = NormalTransCommand;
+                            }
                         }
                     }
                     else
                     {
-                        if (lastCommand == NormalTransCommand)
+                        lastCommand = NormalCommandNum;
+                    }
+                }
+
+                infos.pDibos[NormalOpaqueCommand]->setCommandNum(static_cast<unsigned int>(opaqueCommand.size()));
+                infos.pDibos[NormalTransCommand]->setCommandNum(static_cast<unsigned int>(transCommand.size()));
+
+                if (opaqueCommand.empty() == false)
+                {
+                    infos.pDibos[NormalOpaqueCommand]->bind();
+                    infos.pDibos[NormalOpaqueCommand]->setData(static_cast<unsigned int>(opaqueCommand.size()) * sizeof(DrawElementsCommand), opaqueCommand.data());
+                    infos.pDibos[NormalOpaqueCommand]->unbind();
+                }
+                if (transCommand.empty() == false)
+                {
+                    infos.pDibos[NormalTransCommand]->bind();
+                    infos.pDibos[NormalTransCommand]->setData(static_cast<unsigned int>(transCommand.size()) * sizeof(DrawElementsCommand), transCommand.data());
+                    infos.pDibos[NormalTransCommand]->unbind();
+                }
+            }
+        }
+        else {
+            // 处理rebuild dirty
+            if (rebuildStart >= 0)
+            {
+                std::vector<NormalVertexData> vertex;
+                std::vector<NormalNormalData> normal;
+                std::vector<NormalUvData> uv;
+                std::vector<NormalRankData> rank;
+                std::vector<unsigned int> indexs;
+                std::vector<NormalProfileData> profile;
+
+                vertex.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                normal.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                uv.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                rank.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
+                indexs.resize(list.indexSum.back() - list.indexSum[rebuildStart], RestartMark);
+                profile.resize(list.entityList.size() - rebuildStart);
+
+                for (auto i = static_cast<unsigned int>(rebuildStart); i < list.entityList.size(); i++)
+                {
+                    auto pEntity = list.entityList[i];
+                    if (pEntity != nullptr)
+                    {
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &vertex[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &normal[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &uv[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportVertex(pEntity, FX::vec2i{ index, static_cast<int>(i) }, &rank[list.pointSum[i] - list.pointSum[rebuildStart]]);
+                        exportIndex(pEntity, list.pointSum[i], &indexs[list.indexSum[i] - list.indexSum[rebuildStart]]);
+                        exportProfile(pEntity, &profile[i - rebuildStart]);
+                    }
+                }
+
+                // 只有所有顶点数据均不为空时有效
+                if (vertex.empty() == false && normal.empty() == false && uv.empty() == false && rank.empty() == false &&
+                    indexs.empty() == false && profile.empty() == false)
+                {
+                    infos.pVao->bind();
+
+                    infos.pVbos[PositionBufferIndex]->bind();
+                    infos.pVbos[PositionBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalVertexData),
+                        static_cast<unsigned int>(vertex.size()) * sizeof(NormalVertexData), vertex.data());
+
+                    glVertexAttribPointer(PositionBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+                    glEnableVertexAttribArray(PositionBufferIndex);
+
+                    infos.pVbos[NormalBufferIndex]->bind();
+                    infos.pVbos[NormalBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalNormalData),
+                        static_cast<unsigned int>(normal.size()) * sizeof(NormalNormalData), normal.data());
+
+                    glVertexAttribPointer(NormalBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+                    glEnableVertexAttribArray(NormalBufferIndex);
+
+                    infos.pVbos[UvBufferIndex]->bind();
+                    infos.pVbos[UvBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalUvData),
+                        static_cast<unsigned int>(uv.size()) * sizeof(NormalUvData), uv.data());
+
+                    glVertexAttribPointer(UvBufferIndex, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+                    glEnableVertexAttribArray(UvBufferIndex);
+
+                    infos.pVbos[RankBufferIndex]->bind();
+                    infos.pVbos[RankBufferIndex]->setSubData(list.pointSum[rebuildStart] * sizeof(NormalRankData),
+                        static_cast<unsigned int>(rank.size()) * sizeof(NormalRankData), rank.data());
+
+                    glVertexAttribIPointer(RankBufferIndex, 2, GL_INT, 2 * sizeof(int), 0);
+                    glEnableVertexAttribArray(RankBufferIndex);
+
+                    infos.pVbos[RankBufferIndex]->unbind();
+                    infos.pVao->unbind();
+
+                    infos.pEbo->bind();
+                    infos.pEbo->setSubData(list.indexSum[rebuildStart] * sizeof(unsigned int),
+                        static_cast<unsigned int>(indexs.size()) * sizeof(unsigned int), indexs.data());
+                    infos.pEbo->unbind();
+
+                    infos.pSsbo->bind();
+                    infos.pSsbo->setSubData(rebuildStart * sizeof(NormalProfileData),
+                        static_cast<unsigned int>(profile.size()) * sizeof(NormalProfileData), profile.data());
+                    infos.pSsbo->unbind();
+                }
+            }
+
+            // 处理list dirty
+            if (infos.pSsbo->dirtyList().empty() == false)
+            {
+                infos.pSsbo->bind();
+
+                NormalProfileData profile;
+
+                for (auto i : infos.pSsbo->dirtyList())
+                {
+                    if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                    {
+                        assert(0);
+                        continue;
+                    }
+
+                    exportProfile(list.entityList[i], &profile);
+
+                    infos.pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
+                }
+
+                infos.pSsbo->unbind();
+            }
+
+            // 有dirty就重新生成全部command
+            // TODO 优化
+            if (rebuildStart >= 0 || infos.pDibos[NormalOpaqueCommand]->dirtyList().empty() == false ||
+                infos.pDibos[NormalTransCommand]->dirtyList().empty() == false)
+            {
+                std::vector<DrawElementsCommand> opaqueCommand;
+                std::vector<DrawElementsCommand> transCommand;
+                opaqueCommand.reserve(10);
+                transCommand.reserve(10);
+
+                auto lastCommand = NormalCommandNum;
+
+                for (int i = 0; i < list.entityList.size(); i++)
+                {
+                    auto pEntity = list.entityList[i];
+                    if (pEntity != nullptr && pEntity->profile().visible)
+                    {
+                        auto num = list.indexSum[i + 1] - list.indexSum[i];
+                        if (pEntity->profile().color.a == 255 && type != ScreenTextID)
                         {
-                            assert(transCommand.empty() == false);
-                            assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
-                            transCommand.back().indexNum += num;
+                            if (lastCommand == NormalOpaqueCommand)
+                            {
+                                assert(opaqueCommand.empty() == false);
+                                assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
+                                opaqueCommand.back().indexNum += num;
+                            }
+                            else
+                            {
+                                opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                                lastCommand = NormalOpaqueCommand;
+                            }
                         }
                         else
                         {
-                            transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            lastCommand = NormalTransCommand;
+                            if (lastCommand == NormalTransCommand)
+                            {
+                                assert(transCommand.empty() == false);
+                                assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
+                                transCommand.back().indexNum += num;
+                            }
+                            else
+                            {
+                                transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                                lastCommand = NormalTransCommand;
+                            }
                         }
                     }
+                    else
+                    {
+                        lastCommand = NormalCommandNum;
+                    }
                 }
-                else
+
+                infos.pDibos[NormalOpaqueCommand]->setCommandNum(static_cast<unsigned int>(opaqueCommand.size()));
+                infos.pDibos[NormalTransCommand]->setCommandNum(static_cast<unsigned int>(transCommand.size()));
+
+                if (opaqueCommand.empty() == false)
                 {
-                    lastCommand = NormalCommandNum;
+                    infos.pDibos[NormalOpaqueCommand]->bind();
+                    infos.pDibos[NormalOpaqueCommand]->setData(static_cast<unsigned int>(opaqueCommand.size()) * sizeof(DrawElementsCommand), opaqueCommand.data());
+                    infos.pDibos[NormalOpaqueCommand]->unbind();
                 }
-            }
-
-            infos.pDibos[NormalOpaqueCommand]->setCommandNum(static_cast<unsigned int>(opaqueCommand.size()));
-            infos.pDibos[NormalTransCommand]->setCommandNum(static_cast<unsigned int>(transCommand.size()));
-
-            if (opaqueCommand.empty() == false)
-            {
-                infos.pDibos[NormalOpaqueCommand]->bind();
-                infos.pDibos[NormalOpaqueCommand]->setData(static_cast<unsigned int>(opaqueCommand.size()) * sizeof(DrawElementsCommand), opaqueCommand.data());
-                infos.pDibos[NormalOpaqueCommand]->unbind();
-            }
-            if (transCommand.empty() == false)
-            {
-                infos.pDibos[NormalTransCommand]->bind();
-                infos.pDibos[NormalTransCommand]->setData(static_cast<unsigned int>(transCommand.size()) * sizeof(DrawElementsCommand), transCommand.data());
-                infos.pDibos[NormalTransCommand]->unbind();
+                if (transCommand.empty() == false)
+                {
+                    infos.pDibos[NormalTransCommand]->bind();
+                    infos.pDibos[NormalTransCommand]->setData(static_cast<unsigned int>(transCommand.size()) * sizeof(DrawElementsCommand), transCommand.data());
+                    infos.pDibos[NormalTransCommand]->unbind();
+                }
             }
         }
 
