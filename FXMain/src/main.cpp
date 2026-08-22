@@ -1,4 +1,4 @@
-﻿#include <condition_variable>
+#include <condition_variable>
 #include <mutex>
 #include <random>
 #include <thread>
@@ -251,16 +251,16 @@ void randomFunc(void)
 {
     std::random_device rDevice;
     std::mt19937 rEngine(rDevice());
-    std::uniform_int_distribution<> range1(0, 99999);
+    std::uniform_int_distribution<> range1(0, 999999);
     std::uniform_int_distribution<> range2(0, 510);
 
     while (true)
     {
-        colorList.resize(1000);
-        rotateList.resize(1000);
-        visibleList.resize(1000);
+        colorList.resize(10000);
+        rotateList.resize(10000);
+        visibleList.resize(10000);
 
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 10000; i++)
         {
             colorList[i].index = range1(rEngine);
             colorList[i].color = {
@@ -302,8 +302,8 @@ int main(void)
 
     std::vector<Box*> boxs;
     std::vector<Edge*> edges;
-    boxs.resize(100000);
-    edges.resize(100000);
+    boxs.resize(1000000);
+    edges.resize(1000000);
     for (int i = 0; i < boxs.size(); i++)
     {
         boxs[i] = new Box(static_cast<float>((i % 10000) / 100), static_cast<float>((i % 10000) % 100), static_cast<float>(i / 10000), 0.25f);
@@ -342,7 +342,7 @@ int main(void)
     scene.addPrinter(&printer1, FX::NormalLineID);
     scene.addPrinter(&printer3, FX::ScreenTextID);
 
-    FX::GraphicsWindow window1(800, 600, "10w正方体", true);
+    FX::GraphicsWindow window1(800, 600, "100w正方体", true);
     window1.use();
     window1.frame();
 
@@ -364,7 +364,7 @@ int main(void)
     scene.bindCamera(&camera.get());
 
     FX::BasicBounding<> box;
-    box.expand(FX::vec3f{ 120, 120, 20 });
+    box.expand(FX::vec3f{ 120, 120, 120 });
     box.expand(FX::vec3f{ -20, -20, -20 });
     camera.observe(box);
 
@@ -404,13 +404,13 @@ int main(void)
         text3.setPosition({ (800 - 85) / 2, 75 });
         text3.setDepth(-0.99f);
 
-        text4.setText("每100毫秒改变随机1000个正方体的颜色，1000个可见性，1000个矩阵");
+        text4.setText("每100毫秒改变随机10000个正方体的颜色，10000个可见性，10000个矩阵");
         profile = text4.profile();
         profile.font = { name1, 18 };
         profile.color = { 200, 200, 200, 255 };
         text4.setProfile(profile);
         scene.addEntity(&text4);
-        text4.setPosition({ (800 - 480) / 2, 110});
+        text4.setPosition({ (800 - 570) / 2, 110});
         text4.setDepth(-0.99f);
     }
 
@@ -425,8 +425,8 @@ int main(void)
 
     std::thread randomThread(&randomFunc);
 
-    text3.setText("性能测试，10w正方体");
-    text3.setPosition({ (800 - 200) / 2, 77 });
+    text3.setText("性能测试，100w正方体");
+    text3.setPosition({ (800 - 210) / 2, 77 });
 
     long long sumT = 0;
     long long updateT = 0;
@@ -500,8 +500,8 @@ int main(void)
             {
                 auto size = window1.size();
                 text2.setPosition({ 5, size.y - 55 });
-                text3.setPosition({ (size.x - 200) / 2, 75});
-                text4.setPosition({ (size.x - 480) / 2, 100});
+                text3.setPosition({ (size.x - 210) / 2, 75});
+                text4.setPosition({ (size.x - 570) / 2, 100});
             }
         }
 
@@ -531,7 +531,7 @@ int main(void)
             {
                 auto position = glm::vec3(static_cast<float>((data.index % 10000) / 100), static_cast<float>((data.index % 10000) % 100), static_cast<float>(data.index / 10000));
                 auto matrix1 = glm::translate(glm::mat4(1.0f), -position);
-                auto matrix2 = (data.rotate > 50000) ? glm::mat4(1.0f) : glm::rotate(glm::mat4(1.0f), 2 * 3.1415926f * (data.rotate / 50000.0f), glm::vec3(1.0f));
+                auto matrix2 = (data.rotate > 500000) ? glm::mat4(1.0f) : glm::rotate(glm::mat4(1.0f), 2 * 3.1415926f * (data.rotate / 500000.0f), glm::vec3(1.0f));
                 auto matrix3 = glm::translate(glm::mat4(1.0f), position);
                 FX::EntityProfile profile = boxs[data.index]->profile();
                 profile.matrix = matrix3 * matrix2 * matrix1;
