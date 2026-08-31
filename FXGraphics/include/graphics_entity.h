@@ -126,12 +126,12 @@ namespace FX {
         EntityType type(void) const;
 
         void setDirty(DirtyType type);
+        bool isDataDirty(void) const;
 
         static bool registerType(EntityType type, PrimitiveMode mode);
         static const std::unordered_map<EntityType, PrimitiveMode>& entityTypeMap(void);
 
     protected:
-        bool isDataDirty(void) const;
         void setDataReady(void);
 
     private:

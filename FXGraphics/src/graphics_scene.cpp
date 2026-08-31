@@ -1,6 +1,10 @@
 ﻿#include "graphics_scene.h"
 
 #include <assert.h>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <vector>
 #include "glad.h"
 #include "glm.hpp"
 #include "basic_log.h"
@@ -14,13 +18,161 @@
 namespace FX {
 
     namespace {
+
         struct NormalGlobalInfo {
             glm::mat4 vMatrix = glm::mat4(1.0f);
             glm::mat4 pMatrix = glm::mat4(1.0f);
             glm::mat4 vpMatrix = glm::mat4(1.0f);
             vec2i viewport = { 0, 0 };
         };
+
+        // 并行生成的门槛：当帧待重建数据量（顶点+索引合计）达到该值时才启用多线程
+        constexpr unsigned long long PARALLEL_GENERATE_VOLUME = 30000;
+
+        // 冷列表（从未generate过，无统计数据，典型如首帧前的批量加载）中每个实体的保守数据量估算。
+        // 宁大勿小：偏大只是多付一次微秒级的调度开销，偏小会让毫秒级的负载留在单线程。
+        constexpr unsigned long long COLD_ENTITY_VOLUME_ESTIMATE = 32;
+
+        // 建议的worker线程数：最多4个，且为硬件并发数减1（为主线程留一核）。
+        // 返回0表示不适合多线程。
+        unsigned int suggestWorkerNum(void)
+        {
+            auto num = std::thread::hardware_concurrency();
+            if (num <= 2)
+            {
+                return 0;
+            }
+
+            return std::min(4u, num - 1);
+        }
+
     }  // namespace
+
+    // GraphicsScene::generate的数据脏任务：需要重建顶点数据的EntityList及其定位信息
+    struct GraphicsSceneDirtyTask {
+        EntityList* pList;
+        EntityType type;
+        int index;
+    };
+
+    // GraphicsSceneWorker实现GraphicsScene::generate的多线程生成。
+    // 所有共享状态由m_mtx保护，worker仅在领取任务与归还计数时短暂持锁，生成工作在锁外进行。
+    // 跨帧复用安全性依赖一个不变量：m_remaining减到0意味着所有已领取的任务都已归还计数，
+    // 因此dispatch重置状态时不存在旧帧worker递减新帧计数的交错。
+    class GraphicsSceneWorker {
+    public:
+        explicit GraphicsSceneWorker(unsigned int num)
+        {
+            assert(num >= 2);
+
+            m_threads.reserve(num);
+
+            try
+            {
+                for (unsigned int i = 0; i < num; i++)
+                {
+                    m_threads.emplace_back(&GraphicsSceneWorker::work, this);
+                }
+            }
+            catch (...)
+            {
+                // 线程创建失败时回收已创建的线程，避免joinable线程的析构导致terminate
+                shutdownAndJoin();
+                throw;
+            }
+        }
+
+        ~GraphicsSceneWorker(void)
+        {
+            shutdownAndJoin();
+        }
+
+        // 发布任务并阻塞等待全部完成。要求没有未完成的任务（fork-join，由调用方保证）
+        void dispatch(const std::vector<GraphicsSceneDirtyTask>& tasks)
+        {
+            assert(tasks.empty() == false);
+
+            {
+                std::lock_guard<std::mutex> lock(m_mtx);
+                assert(m_remaining == 0);
+
+                m_tasks.clear();
+                for (auto& task : tasks)
+                {
+                    m_tasks.push_back(task.pList);
+                }
+                m_next = 0;
+                m_remaining = m_tasks.size();
+            }
+            m_cvWork.notify_all();
+
+            std::unique_lock<std::mutex> lock(m_mtx);
+            m_cvDone.wait(lock, [this]() { return m_remaining == 0; });
+        }
+
+    private:
+        // 线程入口：循环领取任务并执行EntityList::generate，无任务时休眠
+        void work(void)
+        {
+            std::unique_lock<std::mutex> lock(m_mtx);
+
+            while (true)
+            {
+                m_cvWork.wait(lock, [this]() { return m_shutdown || m_next < m_tasks.size(); });
+                if (m_shutdown)
+                {
+                    return;
+                }
+
+                while (m_next < m_tasks.size())
+                {
+                    auto pList = m_tasks[m_next++];
+                    lock.unlock();
+
+                    // generate是用户实现的虚函数，异常逃逸出线程函数会导致terminate，
+                    // 此处捕获并记为错误，保证m_remaining必然归还
+                    try
+                    {
+                        pList->generate();
+                    }
+                    catch (...)
+                    {
+                        BasicLog::out(BasicLog::kError, "Exception thrown in parallel entity generation, discard.");
+                    }
+
+                    lock.lock();
+                    if (--m_remaining == 0)
+                    {
+                        m_cvDone.notify_one();
+                    }
+                }
+            }
+        }
+
+        void shutdownAndJoin(void)
+        {
+            {
+                std::lock_guard<std::mutex> lock(m_mtx);
+                m_shutdown = true;
+            }
+            m_cvWork.notify_all();
+
+            for (auto& thread : m_threads)
+            {
+                thread.join();
+            }
+            m_threads.clear();
+        }
+
+        std::vector<std::thread> m_threads;
+        std::mutex m_mtx;
+        std::condition_variable m_cvWork;      // 主线程 -> worker：有任务可领取
+        std::condition_variable m_cvDone;      // worker -> 主线程：全部任务完成
+        std::vector<EntityList*> m_tasks;      // 当帧任务
+        size_t m_next = 0;                     // 下一个待领取的任务下标（受m_mtx保护）
+        size_t m_remaining = 0;                // 未完成的任务数（受m_mtx保护）
+        bool m_shutdown = false;               // 受m_mtx保护
+    };
 
     GraphicsScene::GraphicsScene()
     {
@@ -36,6 +188,13 @@ namespace FX {
 
     GraphicsScene::~GraphicsScene()
     {
+        // worker持有访问EntityList的线程，必须先于entityManager销毁（析构内部join）
+        if (m_pWorker != nullptr)
+        {
+            delete m_pWorker;
+            m_pWorker = nullptr;
+        }
+
         if (m_pEntityManager != nullptr)
         {
             delete m_pEntityManager;
@@ -314,6 +473,11 @@ namespace FX {
         assert(m_pEntityManager != nullptr);
         assert(m_pBufferManager != nullptr);
 
+        std::vector<GraphicsSceneDirtyTask> tasks;
+        unsigned long long volume = 0;
+
+        // 相位一：收集（主线程）。arrange与clean先行，使脏量估算能读到准确状态。
+        // 轻脏列表（无顶点重建工作）当场提交，与原串行路径一致。
         for (auto& pair : m_pEntityManager->m_container)
         {
             auto type = pair.first;
@@ -324,21 +488,70 @@ namespace FX {
 
                 list.arrange();
 
-                if (list.entityList.empty())
+                if (list.entityList.empty() || list.isDirty() == false)
                 {
                     continue;
                 }
 
-                if (list.isDirty())
+                list.clean();
+
+                if (list.rebuildStart < 0)
                 {
-                    list.clean();
-                    list.generate();
-
                     m_pBufferManager->accept(list, type, i);
-
                     list.setReady();
+                    continue;
                 }
+
+                if (list.pointSum.empty())
+                {
+                    // 冷列表无统计数据，按实体数保守估算
+                    volume += static_cast<unsigned long long>(list.entityList.size() - list.invalidNum) * COLD_ENTITY_VOLUME_ESTIMATE;
+                }
+                else
+                {
+                    const auto covered = list.pointSum.size() - 1;
+                    const auto tail = list.entityList.size() > covered ? list.entityList.size() - covered : 0;
+
+                    volume += list.pointSum.back() - list.pointSum[list.rebuildStart]    // 已提交部分的重算量（精确）
+                            + list.indexSum.back() - list.indexSum[list.rebuildStart]
+                            + (static_cast<unsigned long long>(list.pointAvg) + list.indexAvg) * tail;    // 未提交尾部估算
+                }
+
+                tasks.push_back({ &list, type, i });
             }
+        }
+
+        if (tasks.empty())
+        {
+            return;
+        }
+
+        // 相位二：生成。任务数与待重建量均达标时并行（不同列表访问的实体互不相交，无需加锁），
+        // 否则主线程串行生成
+        const auto workerNum = suggestWorkerNum();
+        const bool parallel = tasks.size() >= 2 && volume >= PARALLEL_GENERATE_VOLUME && workerNum >= 2;
+
+        if (parallel)
+        {
+            if (m_pWorker == nullptr)
+            {
+                m_pWorker = new GraphicsSceneWorker(workerNum);
+            }
+            m_pWorker->dispatch(tasks);
+        }
+        else
+        {
+            for (auto& task : tasks)
+            {
+                task.pList->generate();
+            }
+        }
+
+        // 相位三：提交（主线程）。按收集顺序提交，与串行实现的结果一致
+        for (auto& task : tasks)
+        {
+            m_pBufferManager->accept(*task.pList, task.type, task.index);
+            task.pList->setReady();
         }
     }
 

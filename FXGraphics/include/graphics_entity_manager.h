@@ -29,6 +29,12 @@ namespace FX {
         std::vector<unsigned int> pointSum;
         std::vector<unsigned int> indexSum;
 
+        // 最近一次generate时，平均每个活实体的顶点数/索引数（分母为活实体数，分子含已删除
+        // 实体的残留数据，因此略微偏大，对容量估算而言是保守方向）。
+        // 用于shouldAcceptEntity估算尚未generate的实体尺寸。
+        unsigned int pointAvg = 0;
+        unsigned int indexAvg = 0;
+
         DirtyList matrixList;
         DirtyList profileList;
         DirtyList commandList;

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <fstream>
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
@@ -435,6 +436,7 @@ namespace FX {
     public:
         friend class GraphicsFontManager;
 
+        std::string loadFontFile(const std::string& path);
         void prepare(const Font& font, const std::string& texts);
         FontInfo queryFont(const Font& font);
         StringVertex queryStringVertex(const Font& font, const std::string& texts);
@@ -442,6 +444,10 @@ namespace FX {
     private:
         FontManager m_fontManager;
         TextManager m_textManager;
+
+        // GraphicsScene的并行generate会从多个线程并发调用queryStringVertex，
+        // 所有触碰m_fontManager/m_textManager的入口都需要持锁
+        std::mutex m_mutex;
     };
 
     GraphicsFontManager& GraphicsFontManager::instance()
@@ -462,7 +468,7 @@ namespace FX {
 
     std::string GraphicsFontManager::loadFontFile(const std::string& path)
     {
-        return m_pImpl->m_fontManager.load(path);
+        return m_pImpl->loadFontFile(path);
     }
 
     void GraphicsFontManager::prepare(const Font& font, const std::string& texts)
@@ -480,8 +486,16 @@ namespace FX {
         return m_pImpl->queryStringVertex(font, texts);
     }
 
+    std::string GraphicsFontManagerImpl::loadFontFile(const std::string& path)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_fontManager.load(path);
+    }
+
     void GraphicsFontManagerImpl::prepare(const Font& font, const std::string& texts)
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
         if (texts.empty())
         {
             return;
@@ -515,6 +529,8 @@ namespace FX {
 
     FontInfo GraphicsFontManagerImpl::queryFont(const Font& font)
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
         FontInfo ret;
 
         if (font.valid() == false)
@@ -541,6 +557,8 @@ namespace FX {
 
     StringVertex GraphicsFontManagerImpl::queryStringVertex(const Font& font, const std::string& texts)
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
         StringVertex ret;
 
         if (texts.empty())

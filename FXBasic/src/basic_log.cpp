@@ -5,6 +5,12 @@
 
 namespace FX {
 
+    std::mutex& BasicLog::mutex()
+    {
+        static std::mutex instance;
+        return instance;
+    }
+
     void BasicLog::describe(LogType type)
     {
         if (PrintTime)

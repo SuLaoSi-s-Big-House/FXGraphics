@@ -10,6 +10,7 @@ namespace FX {
 
     class GraphicsPrinter;
     class GraphicsCamera;
+    class GraphicsSceneWorker;
 
     // 此文件定义了GraphicsScene
     // GraphicsScene管理GraphicsEntity GraphicsPrinter等与绘制相关的资源，并实现绘制的主要流程。
@@ -51,6 +52,7 @@ namespace FX {
 
         GraphicsEntityManager* m_pEntityManager = nullptr;
         GraphicsBufferManager* m_pBufferManager = nullptr;
+        GraphicsSceneWorker* m_pWorker = nullptr;      // 并行generate的工作线程，惰性创建，定义在graphics_scene.cpp
         PrinterManager m_printerManager;
         GraphicsCamera* m_pCamera = nullptr;
         GraphicsUBO m_globalUbo;

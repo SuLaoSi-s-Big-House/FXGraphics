@@ -8,7 +8,60 @@ namespace FX {
 
     namespace {
 
-        constexpr unsigned int MAX_LIST_ENTITY_NUM = 1000u;
+        // 估算EntityList容量，避免EntityList过短导致绘制效率低，和EntityList过长导致修改效率低
+        constexpr unsigned int MIN_LIST_ENTITY_NUM = 1000;
+        constexpr unsigned int MAX_LIST_ENTITY_NUM = 10000;
+
+        // 当EntityList中（估计）累计顶点数或索引数超出上限时，不再接纳新实体
+        constexpr unsigned int MAX_LIST_POINT_NUM = 1000000;
+        constexpr unsigned int MAX_LIST_INDEX_NUM = 1000000;
+
+        // 判断EntityList是否应接纳pEntity。实体数处于[MIN_LIST_ENTITY_NUM, MAX_LIST_ENTITY_NUM)时，
+        // 已提交部分用pointSum/indexSum精确读取，未提交部分用均值估算，据此判断总顶点数与索引数是否超限。
+        bool shouldAcceptEntity(const EntityList& list, const GraphicsEntity* pEntity)
+        {
+            assert(pEntity != nullptr);
+
+            const auto slots = list.entityList.size();
+            const auto live = slots - list.invalidNum;
+
+            if (live >= MAX_LIST_ENTITY_NUM)
+            {
+                return false;
+            }
+
+            if (live < MIN_LIST_ENTITY_NUM)
+            {
+                return true;
+            }
+
+            // 列表从未generate过，没有可用的尺寸统计（典型如首帧前的批量加载），保守拒绝
+            if (list.pointSum.empty())
+            {
+                return false;
+            }
+
+            // pointSum/indexSum精确覆盖[0, covered)槽位，与当前buffer内容一致：已删除实体的
+            // 残留数据仍占据buffer，计入是保守的正确行为。列表被整体清空后pointSum会残留旧值
+            // （covered超过当前槽位数），此时弃用已提交部分。
+            const auto covered = list.pointSum.size() - 1;
+            const auto committedP = covered <= slots ? list.pointSum.back() : 0;
+            const auto committedI = covered <= slots ? list.indexSum.back() : 0;
+
+            // 自上次generate以来追加的槽位：dirty时rebuildStart即已提交边界，clean时无未提交部分
+            const auto tailSlots = list.rebuildStart >= 0 ? slots - list.rebuildStart : 0;
+
+            // 候选实体：非data-dirty时pointNum精确；data-dirty但已生成过时旧数据仍是不错的估计；
+            // 从未生成过（pointNum为0）退化为列表均值
+            const bool candReady = pEntity->isDataDirty() == false || pEntity->pointNum() > 0;
+            const auto candP = candReady ? pEntity->pointNum() : list.pointAvg;
+            const auto candI = candReady ? pEntity->indexNum() + 1 : list.indexAvg;    // +1为图元重启标志，与indexSum口径一致
+
+            const auto estP = committedP + static_cast<unsigned long long>(list.pointAvg) * tailSlots + candP;
+            const auto estI = committedI + static_cast<unsigned long long>(list.indexAvg) * tailSlots + candI;
+
+            return estP <= MAX_LIST_POINT_NUM && estI <= MAX_LIST_INDEX_NUM;
+        }
 
         inline bool isSameList(const TextureKey& left, const TextureKey& right)
         {
@@ -165,6 +218,15 @@ namespace FX {
                 pointSum[i + 1] = pointSum[i];
                 indexSum[i + 1] = indexSum[i];
             }
+        }
+
+        // 同步尺寸统计，供shouldAcceptEntity估算未提交部分。分母用活实体数而非槽位数，
+        // 使残留数据只增大均值（保守方向）而不被死槽位稀释。
+        const auto live = entityList.size() - invalidNum;
+        if (live > 0)
+        {
+            pointAvg = static_cast<unsigned int>(pointSum.back() / live);
+            indexAvg = static_cast<unsigned int>(indexSum.back() / live);
         }
     }
 
@@ -357,7 +419,7 @@ namespace FX {
 
             for (; i < group.size(); i++)
             {
-                if (group[i].font == pEntity->profile().font && group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+                if (group[i].font == pEntity->profile().font && shouldAcceptEntity(group[i], pEntity))
                 {
                     break;
                 }
@@ -376,7 +438,7 @@ namespace FX {
         {
             for (; i < group.size(); i++)
             {
-                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM && isSameList(group[i].texture, pEntity->profile().texture))
+                if (isSameList(group[i].texture, pEntity->profile().texture) && shouldAcceptEntity(group[i], pEntity))
                 {
                     break;
                 }
@@ -395,7 +457,7 @@ namespace FX {
         {
             for (; i < group.size(); i++)
             {
-                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM)
+                if (shouldAcceptEntity(group[i], pEntity))
                 {
                     break;
                 }
