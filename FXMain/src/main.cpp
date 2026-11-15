@@ -273,7 +273,7 @@ int main(void)
     {
         auto profile = text1.profile();
         profile.font = { name1, 16 };
-        profile.color = { 0, 200, 255, 255 };
+        profile.baseColor = { 0, 200, 255, 255 };
         text1.setProfile(profile);
         scene.addEntity(&text1);
         text1.setPosition({ 5, 5 });
@@ -283,7 +283,7 @@ int main(void)
     {
         auto profile = text2.profile();
         profile.font = { name1, 12 };
-        profile.color = { 200, 200, 200, 255 };
+        profile.baseColor = { 200, 200, 200, 255 };
         text2.setProfile(profile);
         scene.addEntity(&text2);
         text2.setPosition({ 5, 545 });

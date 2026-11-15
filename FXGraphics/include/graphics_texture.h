@@ -11,6 +11,8 @@
 namespace FX {
 
     using TextureUnit = unsigned char;
+    constexpr TextureUnit BaseColorTextureUnit = 0;
+    constexpr TextureUnit NormalTextureUnit = 1;
     constexpr TextureUnit TextTextureUnit = 6;
 
     class GraphicsTextureBase : public GraphicsGPUItem {

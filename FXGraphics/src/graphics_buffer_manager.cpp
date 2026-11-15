@@ -138,14 +138,12 @@ namespace FX {
             std::vector<NormalUvData> uv;
             std::vector<NormalRankData> rank;
             std::vector<unsigned int> indexs;
-            std::vector<NormalProfileData> profile;
 
             vertex.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
             normal.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
             uv.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
             rank.resize(list.pointSum.back() - list.pointSum[rebuildStart]);
             indexs.resize(list.indexSum.back() - list.indexSum[rebuildStart], RestartMark);
-            profile.resize(list.entityList.size() - rebuildStart);
 
             for (auto i = static_cast<unsigned int>(rebuildStart); i < list.entityList.size(); i++)
             {
@@ -157,13 +155,12 @@ namespace FX {
                     exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &uv[list.pointSum[i] - list.pointSum[rebuildStart]]);
                     exportVertex(pEntity, FX::vec2i{index, static_cast<int>(i)}, &rank[list.pointSum[i] - list.pointSum[rebuildStart]]);
                     exportIndex(pEntity, list.pointSum[i], &indexs[list.indexSum[i] - list.indexSum[rebuildStart]]);
-                    exportProfile(pEntity, &profile[i - rebuildStart]);
                 }
             }
 
             // 只有所有顶点数据均不为空时有效
             if (vertex.empty() == false && normal.empty() == false && uv.empty() == false && rank.empty() == false &&
-                indexs.empty() == false && profile.empty() == false)
+                indexs.empty() == false)
             {
                 infos.pVao->bind();
 
@@ -202,35 +199,100 @@ namespace FX {
                 infos.pEbo->setSubData(list.indexSum[rebuildStart] * sizeof(unsigned int),
                     static_cast<unsigned int>(indexs.size()) * sizeof(unsigned int), indexs.data());
                 infos.pEbo->unbind();
+            }
 
-                infos.pSsbo->bind();
-                infos.pSsbo->setSubData(rebuildStart * sizeof(NormalProfileData),
-                    static_cast<unsigned int>(profile.size()) * sizeof(NormalProfileData), profile.data());
-                infos.pSsbo->unbind();
+            // TODO 特殊类型改为模板
+            if (isTextureType(type))
+            {
+                std::vector<NormalTextureProfileData> profile;
+                profile.resize(list.entityList.size() - rebuildStart);
+
+                for (auto i = static_cast<unsigned int>(rebuildStart); i < list.entityList.size(); i++)
+                {
+                    auto pEntity = list.entityList[i];
+                    if (pEntity != nullptr)
+                    {
+                        exportProfile(pEntity, &profile[i - rebuildStart]);
+                    }
+                }
+
+                if (profile.empty() == false)
+                {
+                    infos.pSsbo->bind();
+                    infos.pSsbo->setSubData(rebuildStart * sizeof(NormalTextureProfileData),
+                        static_cast<unsigned int>(profile.size()) * sizeof(NormalTextureProfileData), profile.data());
+                    infos.pSsbo->unbind();
+                }
+            }
+            else
+            {
+                std::vector<NormalProfileData> profile;
+                profile.resize(list.entityList.size() - rebuildStart);
+
+                for (auto i = static_cast<unsigned int>(rebuildStart); i < list.entityList.size(); i++)
+                {
+                    auto pEntity = list.entityList[i];
+                    if (pEntity != nullptr)
+                    {
+                        exportProfile(pEntity, &profile[i - rebuildStart]);
+                    }
+                }
+
+                if (profile.empty() == false)
+                {
+                    infos.pSsbo->bind();
+                    infos.pSsbo->setSubData(rebuildStart * sizeof(NormalProfileData),
+                        static_cast<unsigned int>(profile.size()) * sizeof(NormalProfileData), profile.data());
+                    infos.pSsbo->unbind();
+                }
             }
         }
 
         // 处理list dirty
         if (infos.pSsbo->dirtyList().empty() == false)
         {
-            infos.pSsbo->bind();
-            
-            NormalProfileData profile;
-
-            for (auto i : infos.pSsbo->dirtyList())
+            if (isTextureType(type))
             {
-                if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                infos.pSsbo->bind();
+
+                NormalTextureProfileData profile;
+
+                for (auto i : infos.pSsbo->dirtyList())
                 {
-                    assert(0);
-                    continue;
+                    if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                    {
+                        assert(0);
+                        continue;
+                    }
+
+                    exportProfile(list.entityList[i], &profile);
+
+                    infos.pSsbo->setSubData(i * sizeof(NormalTextureProfileData), sizeof(profile), &profile);
                 }
 
-                exportProfile(list.entityList[i], &profile);
-
-                infos.pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
+                infos.pSsbo->unbind();
             }
+            else
+            {
+                infos.pSsbo->bind();
 
-            infos.pSsbo->unbind();
+                NormalProfileData profile;
+
+                for (auto i : infos.pSsbo->dirtyList())
+                {
+                    if (i >= list.entityList.size() || list.entityList[i] == nullptr)
+                    {
+                        assert(0);
+                        continue;
+                    }
+
+                    exportProfile(list.entityList[i], &profile);
+
+                    infos.pSsbo->setSubData(i * sizeof(NormalProfileData), sizeof(profile), &profile);
+                }
+
+                infos.pSsbo->unbind();
+            }
         }
 
         // 有dirty就重新生成全部command
@@ -250,33 +312,78 @@ namespace FX {
                 auto pEntity = list.entityList[i];
                 if (pEntity != nullptr && pEntity->profile().visible)
                 {
-                    auto num = list.indexSum[i + 1] - list.indexSum[i];
-                    if (pEntity->profile().color.a == 255 && type != ScreenTextID)
+                    if (isTextType(type))
                     {
-                        if (lastCommand == NormalOpaqueCommand)
+                        auto num = list.indexSum[i + 1] - list.indexSum[i];
+
+                        // TODO 区分profile alpha
+                        if (lastCommand == NormalCommandNum)
+                        {
+                            opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                            transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                            lastCommand = NormalOpaqueCommand;
+                        }
+                        else
                         {
                             assert(opaqueCommand.empty() == false);
                             assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
                             opaqueCommand.back().indexNum += num;
-                        }
-                        else
-                        {
-                            opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            lastCommand = NormalOpaqueCommand;
-                        }
-                    }
-                    else
-                    {
-                        if (lastCommand == NormalTransCommand)
-                        {
                             assert(transCommand.empty() == false);
                             assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
                             transCommand.back().indexNum += num;
                         }
+                    }
+                    else if (isTextureType(type))
+                    {
+                        auto num = list.indexSum[i + 1] - list.indexSum[i];
+
+                        // TODO 区分profile alpha
+                        if (lastCommand == NormalCommandNum)
+                        {
+                            opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                            transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                            lastCommand = NormalOpaqueCommand;
+                        }
                         else
                         {
-                            transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            lastCommand = NormalTransCommand;
+                            assert(opaqueCommand.empty() == false);
+                            assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
+                            opaqueCommand.back().indexNum += num;
+                            assert(transCommand.empty() == false);
+                            assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
+                            transCommand.back().indexNum += num;
+                        }
+                    }
+                    else
+                    {
+                        auto num = list.indexSum[i + 1] - list.indexSum[i];
+                        if (pEntity->profile().baseColor.a == 255)
+                        {
+                            if (lastCommand == NormalOpaqueCommand)
+                            {
+                                assert(opaqueCommand.empty() == false);
+                                assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
+                                opaqueCommand.back().indexNum += num;
+                            }
+                            else
+                            {
+                                opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                                lastCommand = NormalOpaqueCommand;
+                            }
+                        }
+                        else
+                        {
+                            if (lastCommand == NormalTransCommand)
+                            {
+                                assert(transCommand.empty() == false);
+                                assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
+                                transCommand.back().indexNum += num;
+                            }
+                            else
+                            {
+                                transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
+                                lastCommand = NormalTransCommand;
+                            }
                         }
                     }
                 }

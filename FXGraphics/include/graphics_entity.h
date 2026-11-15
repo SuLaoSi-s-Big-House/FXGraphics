@@ -3,12 +3,11 @@
 
 #include <vector>
 #include <unordered_map>
-#include <string>
 #include <limits>
-#include "glm.hpp"
 
 #include "basic_vector.h"
 #include "basic_macro.h"
+#include "graphics_material.h"
 
 namespace FX {
 
@@ -20,9 +19,17 @@ namespace FX {
     constexpr EntityType NormalFaceStripID = 3;
     constexpr EntityType NormalPointID = 6;
     constexpr EntityType ScreenTextID = 100;
+
+    constexpr EntityType NormalTextureStartID = 20;
+    constexpr EntityType NormalTextureFaceID_C = 21;
+    constexpr EntityType NormalTextureFaceID_CN = 22;
+    constexpr EntityType NormalTextureEndID = 23;
     // For users:
     // 用户可以添加自己的EntityType，并创建自己的GraphicsEntity派生类
     // 添加新的类型后需要调用GraphicsEntity::registerType()以注册
+
+    bool isTextType(EntityType type);
+    bool isTextureType(EntityType type);
 
     using DirtyType = unsigned int;
 
@@ -32,6 +39,8 @@ namespace FX {
     constexpr DirtyType MatrixDirty = 1 << 3;
     constexpr DirtyType VisibleDirty = 1 << 4;
     constexpr DirtyType FontDirty = 1 << 5;
+    constexpr DirtyType ImageDirty = 1 << 6;
+    constexpr DirtyType TextureDirty = 1 << 7;
     // For users:
     // 用户可以添加自己的DirtyType，用于表示GraphicsEntity的变更情况。
     // 请注意DirtyType的常量值需要满足位运算的要求，同时需要在GraphicsEntityManager中响应自定义的DirtyType。
@@ -54,24 +63,6 @@ namespace FX {
         int second = -1;
 
         bool valid(void) const;
-    };
-
-    struct Font {
-        std::string name = "Arial";
-        unsigned char size = 16;
-
-        bool operator==(const Font& other) const;
-        bool valid(void) const;
-    };
-
-    // 实体属性
-    struct EntityProfile {
-        glm::mat4 matrix = glm::mat4(1.0f);
-        Font font;
-        vec4uc color = { 255, 255, 255, 255 };
-        bool visible = true;
-        vec4f custom1;    // 预留属性，修改后用户需要自行调用setDirty通知图形系统
-        vec4f custom2;
     };
 
     class GraphicsEntityManager;

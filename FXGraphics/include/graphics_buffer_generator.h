@@ -5,6 +5,7 @@
 #include "glm.hpp"
 #include "basic_vector.h"
 #include "graphics_entity.h"
+#include "graphics_texture_manager.h"
 
 namespace FX {
 
@@ -109,11 +110,46 @@ namespace FX {
         auto& profile = pEntity->profile();
         pDest->matrix = profile.matrix;
         pDest->color = {
-            profile.color.r / 255.0f,
-            profile.color.g / 255.0f,
-            profile.color.b / 255.0f,
-            profile.color.a / 255.0f,
+            profile.baseColor.r / 255.0f,
+            profile.baseColor.g / 255.0f,
+            profile.baseColor.b / 255.0f,
+            profile.baseColor.a / 255.0f,
         };
+        pDest->custom1 = profile.custom1;
+        pDest->custom2 = profile.custom2;
+    }
+
+    struct NormalTextureProfileData {
+        glm::mat4 matrix;
+        vec4f color;
+        vec4f uvScale1;
+        vec4f uvScale2;
+        vec4f custom1;
+        vec4f custom2;
+    };
+
+    template<>
+    void exportProfile(GraphicsEntity* pEntity, NormalTextureProfileData* pDest)
+    {
+        assert(pEntity);
+        assert(pDest);
+        auto& profile = pEntity->profile();
+        pDest->matrix = profile.matrix;
+        pDest->color = {
+            profile.baseColor.r / 255.0f,
+            profile.baseColor.g / 255.0f,
+            profile.baseColor.b / 255.0f,
+            profile.baseColor.a / 255.0f,
+        };
+
+        ImageBlock block;
+        auto& manager = GraphicsTextureManager::instance();
+        manager.query(profile.texture.handle(BaseColorTextureSlot), block);
+        pDest->uvScale1 = { block.scale.x, block.scale.y, static_cast<float>(block.slice), 0 };
+        block = ImageBlock();
+        manager.query(profile.texture.handle(NormalTextureSlot), block);
+        pDest->uvScale2 = { block.scale.x, block.scale.y, static_cast<float>(block.slice), 0 };
+
         pDest->custom1 = profile.custom1;
         pDest->custom2 = profile.custom2;
     }

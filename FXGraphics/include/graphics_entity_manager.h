@@ -39,7 +39,8 @@ namespace FX {
         GraphicsEntityManager* pOwner = nullptr;
         int index = 0;
 
-        Font font;    // 当且仅当文字类实体时有意义
+        Font font;           // 当且仅当文字类实体时有意义
+        TextureKey texture;  // 当且仅当纹理类实体时有意义
     };
 
     // 此文件定义了GraphicsEntityManager

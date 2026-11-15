@@ -9,9 +9,15 @@ namespace FX {
     template<typename T = unsigned char>
     class BasicImage {
     public:
+        enum class AlphaType : unsigned char {
+            kAllOpaque = 0,
+            kPartial,
+            kAllTrans,
+        };
+
         BasicImage(void) = default;
 
-        BasicImage::BasicImage(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
+        BasicImage(unsigned int width, unsigned int height, unsigned char channels, const T* pData, bool reference = false)
         {
             if (width == 0 || height == 0 || channels == 0 || (reference && pData == nullptr))
             {
@@ -25,14 +31,16 @@ namespace FX {
             m_reference = reference;
 
             accept(width * height * channels, pData, reference);
+
+            updateAplha();
         }
 
-        BasicImage::~BasicImage(void)
+        ~BasicImage(void)
         {
             release();
         }
 
-        void BasicImage::setData(unsigned int width, unsigned int height, unsigned char channels, T* pData, bool reference = false)
+        void setData(unsigned int width, unsigned int height, unsigned char channels, const T* pData, bool reference = false)
         {
             if (width == 0 || height == 0 || channels == 0 || (reference && pData == nullptr))
             {
@@ -48,19 +56,21 @@ namespace FX {
             m_reference = reference;
 
             accept(width * height * channels, pData, reference);
+
+            updateAplha();
         }
 
-        unsigned int BasicImage::width(void) const
+        unsigned int width(void) const
         {
             return m_width;
         }
 
-        unsigned int BasicImage::height(void) const
+        unsigned int height(void) const
         {
             return m_height;
         }
 
-        unsigned char BasicImage::channels(void) const
+        unsigned char channels(void) const
         {
             return m_channels;
         }
@@ -70,19 +80,30 @@ namespace FX {
             return m_reference;
         }
 
-        const T* BasicImage::data(void) const
+        const T* data(void) const
         {
             return m_pData;
         }
 
-        bool BasicImage::valid(void) const
+        bool valid(void) const
         {
             return m_width > 0 && m_height > 0 && m_channels > 0 && m_pData != nullptr;
         }
 
-        BasicImage::BasicImage(const BasicImage& other)
+        void setAlpha(AlphaType alpha)
+        {
+            m_alpha = alpha;
+        }
+
+        AlphaType alpha(void) const
+        {
+            return m_alpha;
+        }
+
+        BasicImage(const BasicImage& other)
         {
             m_reference = other.m_reference;
+            m_alpha = other.m_alpha;
 
             if (other.valid())
             {
@@ -93,7 +114,7 @@ namespace FX {
             }
         }
 
-        BasicImage& BasicImage::operator=(const BasicImage& other)
+        BasicImage& operator=(const BasicImage& other)
         {
             if (this == &other)
             {
@@ -103,6 +124,7 @@ namespace FX {
             release();
 
             m_reference = other.m_reference;
+            m_alpha = other.m_alpha;
 
             if (other.valid())
             {
@@ -120,21 +142,22 @@ namespace FX {
             return *this;
         }
 
-        BasicImage::BasicImage(BasicImage&& other)
+        BasicImage(BasicImage&& other)
         {
             m_reference = other.m_reference;
+            m_alpha = other.m_alpha;
 
             if (other.valid())
             {
                 m_width = other.m_width;
                 m_height = other.m_height;
                 m_channels = other.m_channels;
-                accept(other.m_width * other.m_height * other.m_channels, other.m_pData, other.m_reference);
+                m_pData = other.m_pData;
                 other.m_pData = nullptr;
             }
         }
 
-        BasicImage& BasicImage::operator=(BasicImage&& other)
+        BasicImage& operator=(BasicImage&& other)
         {
             if (this == &other)
             {
@@ -144,13 +167,14 @@ namespace FX {
             release();
 
             m_reference = other.m_reference;
+            m_alpha = other.m_alpha;
 
             if (other.valid())
             {
                 m_width = other.m_width;
                 m_height = other.m_height;
                 m_channels = other.m_channels;
-                accept(other.m_width * other.m_height * other.m_channels, other.m_pData, other.m_reference);
+                m_pData = other.m_pData;
                 other.m_pData = nullptr;
             }
             else
@@ -163,12 +187,12 @@ namespace FX {
         }
 
     private:
-        void BasicImage::accept(unsigned int pixels, T* pData, bool reference)
+        void accept(unsigned int pixels, const T* pData, bool reference)
         {
             if (reference)
             {
                 assert(pData != nullptr);
-                m_pData = pData;
+                m_pData = const_cast<T*>(pData);
             }
             else
             {
@@ -178,13 +202,30 @@ namespace FX {
             }
         }
 
-        void BasicImage::release(void)
+        void updateAplha(void)
+        {
+            if (!valid())
+            {
+                return;
+            }
+
+            if (m_channels < 4)
+            {
+                m_alpha = AlphaType::kAllOpaque;
+                return;
+            }
+
+            // TODO
+        }
+
+        void release(void)
         {
             if (m_reference == false && m_pData != nullptr)
             {
                 delete[] m_pData;
-                m_pData = nullptr;
             }
+
+            m_pData = nullptr;
         }
 
     private:
@@ -193,6 +234,7 @@ namespace FX {
         unsigned int m_height = 0;
         unsigned char m_channels = 0;
         bool m_reference = true;
+        AlphaType m_alpha = AlphaType::kAllOpaque;
     };
 
 } // namespace FX

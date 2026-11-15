@@ -2,22 +2,55 @@
 
 #include <assert.h>
 #include "graphics_entity_manager.h"
+#include "graphics_texture_manager.h"
 
 namespace FX {
+
+    namespace {
+        inline DirtyType compare(const TextureKey& left, const TextureKey& right)
+        {
+            DirtyType ret = 0;
+            auto& manager = GraphicsTextureManager::instance();
+
+            for (unsigned int i = 0; i < TextureSlotNum; i++)
+            {
+                auto imageHandle1 = left.handle(i);
+                auto imageHandle2 = right.handle(i);
+
+                if (imageHandle1 != imageHandle2)
+                {
+                    ret |= ImageDirty;
+
+                    ImageBlock imageBlock1;
+                    ImageBlock imageBlock2;
+                    manager.query(imageHandle1, imageBlock1);
+                    manager.query(imageHandle2, imageBlock2);
+
+                    if (imageBlock1.textureHandle != imageBlock2.textureHandle)
+                    {
+                        ret |= TextureDirty;
+                        return ret;
+                    }
+                }
+            }
+
+            return ret;
+        }
+    } // namespace
+
+    bool isTextType(EntityType type)
+    {
+        return type == ScreenTextID;
+    }
+
+    bool isTextureType(EntityType type)
+    {
+        return type > NormalTextureStartID && type < NormalTextureEndID;
+    }
 
     bool GroupPos::valid() const
     {
         return first >= 0 && second >= 0;
-    }
-
-    bool Font::operator==(const Font& other) const
-    {
-        return this->name == other.name && this->size == other.size;
-    }
-
-    bool Font::valid() const
-    {
-        return name.empty() == false && size > 0;
     }
 
     GraphicsEntity::~GraphicsEntity()
@@ -75,11 +108,11 @@ namespace FX {
         {
             dirtyType |= MatrixDirty;
         }
-        if (m_profile.color != profile.color)
+        if (m_profile.baseColor != profile.baseColor)
         {
             dirtyType |= ColorDirty;
         }
-        if (m_profile.color.a != profile.color.a)
+        if (m_profile.baseColor.a != profile.baseColor.a)
         {
             dirtyType |= TransparencyDirty;
         }
@@ -92,6 +125,7 @@ namespace FX {
             dirtyType |= DataDirty;
             dirtyType |= FontDirty;
         }
+        dirtyType |= compare(m_profile.texture, profile.texture);
 
         m_profile = profile;
 
@@ -125,6 +159,12 @@ namespace FX {
 
     bool GraphicsEntity::registerType(EntityType type, PrimitiveMode mode)
     {
+        if (type == NormalTextureStartID || type == NormalTextureEndID)
+        {
+            assert(0);
+            return false;
+        }
+
         if (s_entityTypeMap.count(type) > 0)
         {
             return false;
@@ -145,7 +185,9 @@ namespace FX {
         {NormalLineStripID, PrimitiveMode::kLineStrip},
         {NormalFaceStripID, PrimitiveMode::kTriangleStrip},
         {NormalPointID, PrimitiveMode::kPoints},
-        {ScreenTextID, PrimitiveMode::kTriangles}
+        {ScreenTextID, PrimitiveMode::kTriangles},
+        {NormalTextureFaceID_C, PrimitiveMode::kTriangles},
+        {NormalTextureFaceID_CN, PrimitiveMode::kTriangles},
     };
 
     bool GraphicsEntity::isDataDirty() const

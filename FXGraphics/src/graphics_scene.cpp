@@ -9,6 +9,7 @@
 #include "graphics_camera.h"
 #include "graphics_texture.h"
 #include "graphics_font_manager.h"
+#include "graphics_texture_manager.h"
 
 namespace FX {
 
@@ -243,7 +244,7 @@ namespace FX {
                     }
                     assert(list.isDirty() == false);
 
-                    if (pair.first == ScreenTextID)
+                    if (isTextType(pair.first))
                     {
                         if (pipe != NormalTransCommand || list.font.valid() == false)
                         {
@@ -260,6 +261,10 @@ namespace FX {
                         auto pTexture = static_cast<TextureInfo*>(const_cast<GraphicsTexture*>(fontInfo.pTexture)->getOrCreate());
                         assert(pTexture != nullptr);
                         pTexture->bind(TextTextureUnit);
+                    }
+                    else if (isTextureType(pair.first))
+                    {
+
                     }
 
                     auto& buffers = m_pBufferManager->generate(list, type, i);
