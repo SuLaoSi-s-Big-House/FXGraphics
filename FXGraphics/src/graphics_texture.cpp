@@ -14,7 +14,7 @@ namespace FX {
                 case 1: return GraphicsTexture::Format::kR;
                 case 3: return GraphicsTexture::Format::kRGB;
                 case 4: return GraphicsTexture::Format::kRGBA;
-                default: return GraphicsTexture::Format::kRGBA;
+                default: assert(0); return GraphicsTexture::Format::kRGBA;
             }
         }
 
@@ -27,7 +27,7 @@ namespace FX {
                 case GraphicsTexture::Format::kRGBA: return 4;
                 case GraphicsTexture::Format::kDepth: return 1;
                 case GraphicsTexture::Format::kDepthStencil: return 1;
-                default: return 4;
+                default: assert(0); return 4;
             }
         }
 
@@ -40,7 +40,7 @@ namespace FX {
                     case GraphicsTexture::Format::kR: return GL_R8;
                     case GraphicsTexture::Format::kRGB: return GL_RGB8;
                     case GraphicsTexture::Format::kRGBA: return GL_RGBA8;
-                    default: return GL_RGBA8;
+                    default: assert(0); return GL_RGBA8;
                 }
             }
 
@@ -134,8 +134,8 @@ namespace FX {
         {
             if (m_width == image.width() && m_height == image.height() && translate(m_format) == image.channels())
             {
-                markImageDirty(static_cast<unsigned int>(m_imageList.size()));
                 m_imageList.emplace_back(ImagePtr<>(image));
+                markImageDirty(static_cast<unsigned int>(m_imageList.size() - 1));
             }
             else
             {
@@ -326,7 +326,7 @@ namespace FX {
                 updateParam();
             }
 
-            m_dataDepth = max + 1;
+            m_dataDepth = std::max(m_dataDepth, max + 1);
         }
 
         if (pOwner->useMipmap())
@@ -356,7 +356,7 @@ namespace FX {
 
     void TextureInfo::updateParam() const
     {
-        assert(m_paramDirty);
+        //assert(m_paramDirty);
         auto pOwner = static_cast<const GraphicsTextureBase*>(m_pOwner);
         auto target = static_cast<GLenum>(m_pOwner->type());
 

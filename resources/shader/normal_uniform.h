@@ -3,4 +3,6 @@
     mat4 pMatrix;
     mat4 vpMatrix;
     ivec2 viewport;
+    int renderPass;
+    int passPadding;
 };

@@ -19,7 +19,14 @@ namespace FX {
             glm::mat4 pMatrix = glm::mat4(1.0f);
             glm::mat4 vpMatrix = glm::mat4(1.0f);
             vec2i viewport = { 0, 0 };
+            int renderPass = 0;
+            int passPadding = 0;
         };
+
+        constexpr unsigned int RenderPassOffset = sizeof(glm::mat4) * 3 + sizeof(vec2i);
+
+        static_assert(sizeof(NormalGlobalInfo) == 208, "NormalGlobalInfo must match the std140 layout in normal_uniform.h");
+        static_assert(RenderPassOffset == 200, "renderPass offset must match normal_uniform.h");
     }  // namespace
 
     GraphicsScene::GraphicsScene()
@@ -216,6 +223,8 @@ namespace FX {
 
         auto drawImpl = [&typeMap, &vendor, this](unsigned int pipe, unsigned int command) {
 
+            bindRenderPass(static_cast<int>(pipe));
+
             for (auto& pair : m_pEntityManager->m_container)
             {
                 auto type = pair.first;
@@ -246,7 +255,7 @@ namespace FX {
 
                     if (isTextType(pair.first))
                     {
-                        if (pipe != NormalTransCommand || list.font.valid() == false)
+                        if (list.font.valid() == false)
                         {
                             continue;
                         }
@@ -264,7 +273,28 @@ namespace FX {
                     }
                     else if (isTextureType(pair.first))
                     {
+                        auto& manager = GraphicsTextureManager::instance();
 
+                        auto bindTexture = [&manager](TextureHandle handle, TextureUnit unit)
+                        {
+                            auto pTexture = manager.texture(handle);
+
+                            if (pTexture == nullptr)
+                            {
+                                return;
+                            }
+
+                            auto pTextureInfo = static_cast<TextureInfo*>(pTexture->getOrCreate());
+                            assert(pTextureInfo != nullptr);
+
+                            if (pTextureInfo != nullptr)
+                            {
+                                pTextureInfo->bind(unit);
+                            }
+                        };
+
+                        bindTexture(list.texture.color, BaseColorTextureUnit);
+                        bindTexture(list.texture.normal, NormalTextureUnit);
                     }
 
                     auto& buffers = m_pBufferManager->generate(list, type, i);
@@ -376,6 +406,8 @@ namespace FX {
         assert(pWindow != nullptr);
         auto size = pWindow->size();
         info.viewport = { size.x, size.y };
+        info.renderPass = 0;
+        info.passPadding = 0;
 
         auto pUbo = static_cast<UBOInfo*>(m_globalUbo.getOrCreate());
         assert(pUbo != nullptr);
@@ -384,6 +416,20 @@ namespace FX {
         pUbo->bind(0);
 
         glViewport(0, 0, size.x, size.y);
+    }
+
+    void GraphicsScene::bindRenderPass(int pass)
+    {
+        auto pUbo = static_cast<UBOInfo*>(m_globalUbo.getOrCreate());
+        assert(pUbo != nullptr);
+
+        if (pUbo == nullptr)
+        {
+            return;
+        }
+
+        pUbo->bind();
+        pUbo->setSubData(RenderPassOffset, sizeof(int), &pass);
     }
 
     void GraphicsScene::afterDraw()

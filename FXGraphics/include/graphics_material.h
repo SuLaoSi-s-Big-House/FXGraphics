@@ -37,6 +37,12 @@ namespace FX {
         ImageHandle m_handles[TextureSlotNum] = { InvalidHandle, InvalidHandle };
     };
 
+    // 解析后的纹理绑定，供EntityList分组与绘制绑定使用
+    struct TextureBinding {
+        TextureHandle color = InvalidHandle;
+        TextureHandle normal = InvalidHandle;
+    };
+
     // 控制单个实体的属性
     struct EntityProfile {
         vec4uc baseColor = { 255, 255, 255, 255 };

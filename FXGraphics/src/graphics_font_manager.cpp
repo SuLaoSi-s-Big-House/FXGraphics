@@ -188,6 +188,7 @@ namespace FX {
 
             BasicImage<> image;
             image.setData(TEXT_TEXTURE_SIZE, TEXT_TEXTURE_SIZE, 1, nullptr);
+            image.setAlpha(BasicImage<>::AlphaType::kPartial);
             fontData.pTexture->pushImage(image);
             fontData.lastRow = 0;    // lastRow = 0标明是新创建的image
 
@@ -422,6 +423,7 @@ namespace FX {
                     i += static_cast<int>(textData.size());
                     BasicImage<> image;
                     image.setData(TEXT_TEXTURE_SIZE, TEXT_TEXTURE_SIZE, 1, nullptr);
+                    image.setAlpha(BasicImage<>::AlphaType::kPartial);
                     fontData.pTexture->pushImage(image);
                     fontData.lastRow = 0;
                     fontData.textList.emplace_back(std::vector<TextData>());

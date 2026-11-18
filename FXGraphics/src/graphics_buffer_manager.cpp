@@ -16,6 +16,67 @@ namespace FX {
         constexpr unsigned int UvBufferIndex = 2;
         constexpr unsigned int RankBufferIndex = 3;
         constexpr unsigned int VertexBufferNum = 4;
+
+        struct EntityPassInfo {
+            bool opaque = false;
+            bool transparent = false;
+        };
+
+        inline BasicImage<>::AlphaType queryBaseAlpha(GraphicsEntity* pEntity)
+        {
+            assert(pEntity != nullptr);
+
+            auto& manager = GraphicsTextureManager::instance();
+            ImageBlock imageBlock;
+
+            if (manager.query(pEntity->profile().texture.handle(BaseColorTextureSlot), imageBlock))
+            {
+                return imageBlock.alpha;
+            }
+
+            return manager.defaultAlpha();
+        }
+
+        inline EntityPassInfo classifyEntity(GraphicsEntity* pEntity, bool textType, bool textureType)
+        {
+            assert(pEntity != nullptr);
+
+            EntityPassInfo ret;
+            const auto& profile = pEntity->profile();
+
+            if (textType)
+            {
+                // 字体图总是按kPartial处理，文字由shader按coverage做alpha test
+                ret.opaque = profile.baseColor.a == 255;
+                ret.transparent = true;
+                return ret;
+            }
+
+            if (textureType)
+            {
+                const auto alpha = queryBaseAlpha(pEntity);
+                ret.opaque = profile.baseColor.a == 255 &&
+                    (alpha == BasicImage<>::AlphaType::kAllOpaque || alpha == BasicImage<>::AlphaType::kPartial);
+                ret.transparent = true;
+                return ret;
+            }
+
+            ret.opaque = profile.baseColor.a == 255;
+            ret.transparent = profile.baseColor.a != 255;
+            return ret;
+        }
+
+        inline void appendCommand(std::vector<DrawElementsCommand>& commands, unsigned int num, unsigned int start)
+        {
+            if (commands.empty() == false && commands.back().indexStart + commands.back().indexNum == start)
+            {
+                commands.back().indexNum += num;
+            }
+            else
+            {
+                commands.emplace_back(DrawElementsCommand{ num, 1, start, 0, 0 });
+            }
+        }
     }  // namespace
 
     void GraphicsBufferManager::accept(const EntityList& list, EntityType type, int index)
@@ -305,91 +366,25 @@ namespace FX {
             opaqueCommand.reserve(10);
             transCommand.reserve(10);
 
-            auto lastCommand = NormalCommandNum;
-
             for (int i = 0; i < list.entityList.size(); i++)
             {
                 auto pEntity = list.entityList[i];
-                if (pEntity != nullptr && pEntity->profile().visible)
+                if (pEntity == nullptr || pEntity->profile().visible == false)
                 {
-                    if (isTextType(type))
-                    {
-                        auto num = list.indexSum[i + 1] - list.indexSum[i];
-
-                        // TODO 区分profile alpha
-                        if (lastCommand == NormalCommandNum)
-                        {
-                            opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            lastCommand = NormalOpaqueCommand;
-                        }
-                        else
-                        {
-                            assert(opaqueCommand.empty() == false);
-                            assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
-                            opaqueCommand.back().indexNum += num;
-                            assert(transCommand.empty() == false);
-                            assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
-                            transCommand.back().indexNum += num;
-                        }
-                    }
-                    else if (isTextureType(type))
-                    {
-                        auto num = list.indexSum[i + 1] - list.indexSum[i];
-
-                        // TODO 区分profile alpha
-                        if (lastCommand == NormalCommandNum)
-                        {
-                            opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                            lastCommand = NormalOpaqueCommand;
-                        }
-                        else
-                        {
-                            assert(opaqueCommand.empty() == false);
-                            assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
-                            opaqueCommand.back().indexNum += num;
-                            assert(transCommand.empty() == false);
-                            assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
-                            transCommand.back().indexNum += num;
-                        }
-                    }
-                    else
-                    {
-                        auto num = list.indexSum[i + 1] - list.indexSum[i];
-                        if (pEntity->profile().baseColor.a == 255)
-                        {
-                            if (lastCommand == NormalOpaqueCommand)
-                            {
-                                assert(opaqueCommand.empty() == false);
-                                assert(opaqueCommand.back().indexStart + opaqueCommand.back().indexNum == list.indexSum[i]);
-                                opaqueCommand.back().indexNum += num;
-                            }
-                            else
-                            {
-                                opaqueCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                                lastCommand = NormalOpaqueCommand;
-                            }
-                        }
-                        else
-                        {
-                            if (lastCommand == NormalTransCommand)
-                            {
-                                assert(transCommand.empty() == false);
-                                assert(transCommand.back().indexStart + transCommand.back().indexNum == list.indexSum[i]);
-                                transCommand.back().indexNum += num;
-                            }
-                            else
-                            {
-                                transCommand.emplace_back(DrawElementsCommand{ num, 1, list.indexSum[i], 0, 0 });
-                                lastCommand = NormalTransCommand;
-                            }
-                        }
-                    }
+                    continue;
                 }
-                else
+
+                auto num = list.indexSum[i + 1] - list.indexSum[i];
+                const auto pass = classifyEntity(pEntity, isTextType(type), isTextureType(type));
+
+                if (pass.opaque)
                 {
-                    lastCommand = NormalCommandNum;
+                    appendCommand(opaqueCommand, num, list.indexSum[i]);
+                }
+
+                if (pass.transparent)
+                {
+                    appendCommand(transCommand, num, list.indexSum[i]);
                 }
             }
 

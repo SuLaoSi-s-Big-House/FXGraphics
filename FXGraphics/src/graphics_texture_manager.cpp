@@ -51,6 +51,7 @@ namespace FX {
             if (width == targetSize && height == targetSize)
             {
                 memcpy(pDst, pSrc, width * height * channel * sizeof(unsigned char));
+                dst.setAlpha(src.alpha());
                 return;
             }
 
@@ -74,6 +75,8 @@ namespace FX {
                 memcpy(pDst, pSrc, targetSize * channel * sizeof(unsigned char));
                 pDst += targetSize * channel;
             }
+
+            dst.setAlpha(src.alpha());
         }
 
     }  // namespace
@@ -102,10 +105,30 @@ namespace FX {
         }
 
         auto channels = image.channels();
-        if (channels > 4)
+        if (channels == 2 || channels > 4)
         {
-            BasicLog::out(BasicLog::kWarn, "Image has too many channels, not supported yet.");
+            BasicLog::out(BasicLog::kWarn, "Image has unsupported channels, not supported yet.");
             return InvalidHandle;
+        }
+
+        // 单通道约定为alpha图片，转换为RGBA(白色RGB + alpha)以适配通用纹理shader
+        if (channels == 1)
+        {
+            const unsigned int pixelNum = width * height;
+            std::vector<unsigned char> rgba(pixelNum * 4);
+            auto pSrc = image.data();
+
+            for (unsigned int i = 0; i < pixelNum; i++)
+            {
+                rgba[4 * i + 0] = 255;
+                rgba[4 * i + 1] = 255;
+                rgba[4 * i + 2] = 255;
+                rgba[4 * i + 3] = pSrc[i];
+            }
+
+            BasicImage<> converted;
+            converted.setData(width, height, 4, rgba.data());
+            return registerImage(converted);
         }
 
         auto level = calculateLevel(width, height);
@@ -134,6 +157,7 @@ namespace FX {
         else
         {
             textureData.pTexture->pushImage(filledImage);
+            assert(textureData.pTexture->depth() > 0);
             slice = textureData.pTexture->depth() - 1;
         }
 
@@ -143,6 +167,7 @@ namespace FX {
             static_cast<float>(height) / TEXTURE_LEVEL_SIZE[level]
         };
 
+        const auto imageAlpha = image.alpha();
         ImageHandle imageHandle = InvalidHandle;
         if (m_freeList.empty() == false)
         {
@@ -154,11 +179,12 @@ namespace FX {
             m_imagePool[imageHandle].texture = textureHandle;
             m_imagePool[imageHandle].slice = slice;
             m_imagePool[imageHandle].scale = scale;
+            m_imagePool[imageHandle].alpha = imageAlpha;
         }
         else
         {
             imageHandle = static_cast<ImageHandle>(m_imagePool.size());
-            m_imagePool.emplace_back(ImageData{ std::make_unique<BasicImage<>>(image), textureHandle, slice, scale });
+            m_imagePool.emplace_back(ImageData{ std::make_unique<BasicImage<>>(image), textureHandle, slice, scale, imageAlpha });
         }
 
         return imageHandle;
@@ -242,6 +268,7 @@ namespace FX {
         imageData.texture = InvalidHandle;
         imageData.slice = 0;
         imageData.scale = { 1.0f, 1.0f };
+        imageData.alpha = BasicImage<>::AlphaType::kAllOpaque;
 
         m_freeList.push_back(handle);
 
@@ -258,7 +285,7 @@ namespace FX {
 
         if (handle >= m_imagePool.size() || m_imagePool[handle].pImage == nullptr)
         {
-            assert(m_imagePool[handle].texture == InvalidHandle);
+            //assert(m_imagePool[handle].texture == InvalidHandle);
             return false;
         }
 
@@ -276,8 +303,27 @@ namespace FX {
         imgBlock.scale = m_imagePool[handle].scale;
         imgBlock.slice = m_imagePool[handle].slice;
         imgBlock.textureHandle = m_imagePool[handle].texture;
+        imgBlock.alpha = m_imagePool[handle].alpha;
 
         return true;
+    }
+
+    GraphicsTexture* GraphicsTextureManager::texture(TextureHandle handle)
+    {
+        if (handle >= m_texturePool.size())
+        {
+            BasicLog::out(BasicLog::kWarn, "Trying to get an invalid texture handle, discard.");
+            return nullptr;
+        }
+
+        assert(m_texturePool[handle].pTexture != nullptr);
+        return m_texturePool[handle].pTexture.get();
+    }
+
+    BasicImage<>::AlphaType GraphicsTextureManager::defaultAlpha(void) const
+    {
+        assert(m_imagePool.empty() == false);
+        return m_imagePool[0].alpha;
     }
 
     //void GraphicsTextureManager::bind(const TextureKey& texture)
@@ -362,9 +408,11 @@ namespace FX {
         auto& imageData = m_imagePool[0];
         imageData.pImage.reset(new BasicImage<>);
         imageData.pImage->setData(DEFAULT_IMAGE_SIZE, DEFAULT_IMAGE_SIZE, DEFAULT_IMAGE_CHANNEL, pData);
+        imageData.pImage->setAlpha(BasicImage<>::AlphaType::kPartial);
         imageData.texture = 0;
         imageData.slice = 0;
         imageData.scale = { 1.0f, 1.0f };
+        imageData.alpha = imageData.pImage->alpha();
 
         m_texturePool.reserve(5);
         m_texturePool.emplace_back(TextureData());
@@ -388,7 +436,11 @@ namespace FX {
 
         for (auto handle : m_textureMap[key])
         {
-            assert(handle != InvalidHandle);
+            if (handle == InvalidHandle)
+            {
+                continue;
+            }
+
             assert(handle < m_texturePool.size());
 
             auto& textureData = m_texturePool[handle];

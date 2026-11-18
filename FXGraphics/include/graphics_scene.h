@@ -42,6 +42,7 @@ namespace FX {
         void generate(void);
         virtual void clear(void);
         virtual void bindGlobal(void);
+        void bindRenderPass(int pass);
         void beforeDraw(void);
         virtual void unbind(void);
         void afterDraw(void);

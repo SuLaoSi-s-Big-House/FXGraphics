@@ -12,9 +12,12 @@ out vec3 aColorTexCoord;
 void main()
 {
     mat4 model = EntityProfile[aRank.y].model;
-    aPosInView = vMatrix * model * vec4(aPos, 1);
+    mat4 modelView = vMatrix * model;
+    aPosInView = modelView * vec4(aPos, 1);
     gl_Position = pMatrix * aPosInView;
-    aNormInView = normalize(vMatrix * model * vec4(aNormal, 0));
+
+    mat3 normalMatrix = transpose(inverse(mat3(modelView)));
+    aNormInView = vec4(normalize(normalMatrix * aNormal), 0);
 
     aColor = EntityProfile[aRank.y].color;
 

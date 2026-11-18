@@ -209,13 +209,39 @@ namespace FX {
                 return;
             }
 
-            if (m_channels < 4)
+            // 三通道没有alpha，按完全不透明处理
+            if (m_channels == 3)
             {
                 m_alpha = AlphaType::kAllOpaque;
                 return;
             }
 
-            // TODO
+            // 单通道约定为alpha/coverage图片，二通道暂不支持纹理路径，但这里按最后一个通道计算
+            if (m_channels != 1 && m_channels != 2 && m_channels != 4)
+            {
+                m_alpha = AlphaType::kAllOpaque;
+                return;
+            }
+
+            const unsigned int pixelNum = m_width * m_height;
+            const unsigned int alphaOffset = m_channels - 1;
+            bool allOpaque = true;
+            bool allTransparent = true;
+
+            for (unsigned int i = 0; i < pixelNum; i++)
+            {
+                auto alpha = m_pData[i * m_channels + alphaOffset];
+                allOpaque = allOpaque && (alpha == 255);
+                allTransparent = allTransparent && (alpha == 0);
+
+                if (allOpaque == false && allTransparent == false)
+                {
+                    m_alpha = AlphaType::kPartial;
+                    return;
+                }
+            }
+
+            m_alpha = allOpaque ? AlphaType::kAllOpaque : AlphaType::kAllTrans;
         }
 
         void release(void)

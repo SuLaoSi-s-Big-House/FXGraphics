@@ -16,6 +16,7 @@ namespace FX {
         vec2f scale = { 1.0f, 1.0f };
         unsigned int slice = 0;
         TextureHandle textureHandle = InvalidHandle;
+        BasicImage<>::AlphaType alpha = BasicImage<>::AlphaType::kAllOpaque;
     };
 
     class GraphicsTextureManager {
@@ -32,7 +33,11 @@ namespace FX {
 
         bool query(ImageHandle handle, ImageBlock& imgBlock) const;
 
-        //void bind(const TextureKey& texture);
+        // 获取纹理对象供GraphicsScene创建TextureInfo并绑定，0表示默认纹理
+        GraphicsTexture* texture(TextureHandle handle);
+
+        // 默认纹理的alpha类型，用于无效图片的fallback分类
+        BasicImage<>::AlphaType defaultAlpha(void) const;
 
     private:
         GraphicsTextureManager(void);
@@ -48,6 +53,7 @@ namespace FX {
             TextureHandle texture = InvalidHandle;
             unsigned int slice = 0;
             vec2f scale = { 1.0f, 1.0f };
+            BasicImage<>::AlphaType alpha = BasicImage<>::AlphaType::kAllOpaque;
         };
 
         std::vector<ImageData> m_imagePool;

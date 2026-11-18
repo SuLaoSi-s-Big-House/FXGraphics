@@ -10,29 +10,30 @@ namespace FX {
 
         constexpr unsigned int MAX_LIST_ENTITY_NUM = 1000u;
 
-        inline bool isSameList(const TextureKey& left, const TextureKey& right)
+        inline TextureBinding resolve(const TextureKey& key)
         {
+            TextureBinding ret;
             auto& manager = GraphicsTextureManager::instance();
-            for (unsigned int i = 0; i < TextureSlotNum; i++)
+            ImageBlock imageBlock;
+
+            if (manager.query(key.handle(BaseColorTextureSlot), imageBlock))
             {
-                auto imageHandle1 = left.handle(i);
-                auto imageHandle2 = right.handle(i);
-
-                if (imageHandle1 != imageHandle2)
-                {
-                    ImageBlock imageBlock1;
-                    ImageBlock imageBlock2;
-                    manager.query(imageHandle1, imageBlock1);
-                    manager.query(imageHandle2, imageBlock2);
-
-                    if (imageBlock1.textureHandle != imageBlock2.textureHandle)
-                    {
-                        return false;
-                    }
-                }
+                ret.color = imageBlock.textureHandle;
             }
 
-            return true;
+            imageBlock = ImageBlock();
+
+            if (manager.query(key.handle(NormalTextureSlot), imageBlock))
+            {
+                ret.normal = imageBlock.textureHandle;
+            }
+
+            return ret;
+        }
+
+        inline bool isSameList(const TextureBinding& left, const TextureBinding& right)
+        {
+            return left.color == right.color && left.normal == right.normal;
         }
 
     }  // namespace
@@ -377,9 +378,11 @@ namespace FX {
         }
         else if (isTextureType(type))
         {
+            const auto binding = resolve(pEntity->profile().texture);
+
             for (; i < group.size(); i++)
             {
-                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM && isSameList(group[i].texture, pEntity->profile().texture))
+                if (group[i].entityList.size() < MAX_LIST_ENTITY_NUM && isSameList(group[i].texture, binding))
                 {
                     break;
                 }
@@ -390,7 +393,7 @@ namespace FX {
                 EntityList newList;
                 newList.pOwner = this;
                 newList.index = i;
-                newList.texture = pEntity->profile().texture;
+                newList.texture = binding;
                 group.emplace_back(std::move(newList));
             }
         }
